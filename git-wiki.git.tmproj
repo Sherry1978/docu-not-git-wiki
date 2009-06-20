@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>currentDocument</key>
-	<string>plugins/filter/markdown.rb</string>
+	<string>README.markdown</string>
 	<key>documents</key>
 	<array>
 		<dict>
@@ -34,6 +34,20 @@
 			<integer>0</integer>
 			<key>firstVisibleLine</key>
 			<integer>0</integer>
+		</dict>
+		<key>README.markdown</key>
+		<dict>
+			<key>caret</key>
+			<dict>
+				<key>column</key>
+				<integer>0</integer>
+				<key>line</key>
+				<integer>33</integer>
+			</dict>
+			<key>firstVisibleColumn</key>
+			<integer>0</integer>
+			<key>firstVisibleLine</key>
+			<integer>4</integer>
 		</dict>
 		<key>config.yml</key>
 		<dict>
@@ -126,6 +140,7 @@
 		<string>lib/wiki/app.rb</string>
 		<string>engines.yml</string>
 		<string>plugins/filter/markdown.rb</string>
+		<string>README.markdown</string>
 		<string>interwiki.yml</string>
 		<string>run.ru</string>
 		<string>AUTHORS</string>

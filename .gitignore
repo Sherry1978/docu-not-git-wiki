@@ -1,5 +1,6 @@
 *.log
 *.swp
+*~
 .wiki
 mongrel.sh
 thin.sh
@@ -8,3 +9,5 @@ config.yml
 doc
 coverage
 banned.list
+.LSOverride
+Icon

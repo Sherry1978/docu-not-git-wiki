@@ -31,7 +31,6 @@ At first you have to install the gem dependencies via "gem".
     gem sources -a http://gems.github.org/
     gem install minad-creole
     gem install minad-git
-	gem install minad-mimemagic
     gem install minad-rack-esi
     gem install minad-mimemagic
     gem install rack-cache
