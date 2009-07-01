@@ -28,6 +28,7 @@ default_config = {
   :title        => 'Git-Wiki',
   :root         => path,
   :production   => false,
+  :locale	=> 'en-US',
   :auth => {
     :service => 'yamlfile',
     :store   => ::File.join(path, '.wiki', 'users.yml'),
@@ -68,7 +69,7 @@ if Wiki::Config.rack.anti_spam?
   use Rack::AntiSpam
 end
 
-use Rack::Session::PStore, :file => ::File.join(Wiki::Config.cache, 'pstore')
+use Rack::Session::PStore, :file => ::File.join(Wiki::Config.cache, 'session.pstore')
 use Rack::ReverseIP
 use Rack::PathInfo
 use Rack::MethodOverride
