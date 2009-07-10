@@ -27,7 +27,12 @@ module Wiki
         content_hook(:"after_#{name}")
     end
 
-    def footer(content = nil, &block); define_block(:footer, content, &block); end
+    def render_block(name, &block)
+      define_block(name, nil, &block)
+      include_block(name)
+    end
+
+    def footnote(content = nil, &block); define_block(:footnote, content, &block); end
     def head(content = nil, &block);   define_block(:head, content, &block);   end
     def title(content = nil, &block);  define_block(:title, content, &block);  end
 
@@ -99,32 +104,37 @@ module Wiki
       response.headers.delete('Cache-Control')
     end
 
-    def format_patch(diff)
-      lines = diff.patch.split(/[\n\r]+/)
-      html, plus, minus = '', -1, -1
+    def format_patch(patch, from = nil, to = nil)
+      lines = patch.split(/[\n\r]+/)
+      html, plus, minus, path = '', -1, -1, nil
       lines.each do |line|
         if line =~ %r{^diff --git a/(.+) b/(.+)$}
           path = $1
+        elsif line =~ /^\+\+\+ (.*)$/
           html << '</tbody></table>' if !html.empty?
-          html << "<table class=\"patch\"><thead><tr><th>-</th><th>+</th><th class=\"title\"><a class=\"left\" href=\"#{path.urlpath}\">#{path}</a>"\
-               << "<span class=\"right\"><a href=\"#{(path/diff.from).urlpath}\">#{diff.from.truncate(8, '&#8230;')}</a> to "\
-               << "<a href=\"#{(path/diff.to).urlpath}\">#{diff.to.truncate(8, '&#8230;')}</a></span></th></tr></thead><tbody>"
+          if path && from && to
+            html << %Q{<table class="patch"><thead><tr><th>-</th><th>+</th><th class="title"><a class="left" href="#{path.urlpath}">#{path}</a>
+<span class="right"><a href="#{(path/from).urlpath}">#{from.truncate(8, '&#8230;')}</a> to
+<a href="#{(path/to).urlpath}">#{to.truncate(8, '&#8230;')}</a></span></th></tr></thead><tbody>}
+          else
+            html << %Q{<table class="patch"><thead><tr><th>-</th><th>+</th><th class="title">#{$1}</th></tr></thead><tbody>}
+          end
           plus, minus = -1, -1
         elsif line =~ /^@@ -(\d+)(,\d+)? \+(\d+)/
           minus = $1.to_i
           plus = $3.to_i
-          html << "<tr><td>&#160;</td><td>&#160;</td><td class=\"marker\">#{escape_html line}</td></tr>"
+          html << %Q{<tr><td>&#160;</td><td>&#160;</td><td class="marker">#{escape_html line}</td></tr>}
         elsif plus >= 0
           if line[0..0] == '\\'
-            html << "<tr><td>&#160;</td><td>&#160;</td><td class=\"code\">#{escape_html line}</td></tr>"
+            html << %Q{<tr><td>&#160;</td><td>&#160;</td><td class="code">#{escape_html line}</td></tr>}
           elsif line[0..0] == '-'
-            html << "<tr><td>#{minus}</td><td>&#160;</td><td class=\"code minus\">#{escape_html line}</td></tr>"
+            html << %Q{<tr><td>#{minus}</td><td>&#160;</td><td class="code minus">#{escape_html line}</td></tr>}
             minus += 1
           elsif line[0..0] == '+'
-            html << "<tr><td>&#160;</td><td>#{plus}</td><td class=\"code plus\">#{escape_html line}</td></tr>"
+            html << %Q{<tr><td>&#160;</td><td>#{plus}</td><td class="code plus">#{escape_html line}</td></tr>}
             plus += 1
           else
-            html << "<tr><td>#{minus}</td><td>#{plus}</td><td class=\"code\">#{escape_html line}</td></tr>"
+            html << %Q{<tr><td>#{minus}</td><td>#{plus}</td><td class="code">#{escape_html line}</td></tr>}
             minus += 1
             plus += 1
           end
@@ -145,7 +155,7 @@ module Wiki
     def tree_link(level, resource, open)
       level += 1 if resource.page?
       path = open ? resource_path(resource, :path => '..') : resource_path(resource)
-      html = "<a style=\"padding-left: #{level * 16}px\" href=\"#{path}\" title=\"#{open ? :close.t : :open.t}\">"
+      html = %Q{<a style="padding-left: #{level * 16}px" href="#{path}" title="#{open ? :close.t : :open.t}">}
       if resource.page?
         mime = resource.mime.to_s
         img = TREE_IMAGES.find { |img| mime =~ img[0] }
@@ -158,22 +168,22 @@ module Wiki
     end
 
     def date(t)
-      "<span class=\"date seconds_#{t.to_i}\">#{t.strftime('%d %h %Y %H:%M')}</span>"
+      %Q{<span class="date seconds_#{t.to_i}">#{t.strftime('%d %h %Y %H:%M')}</span>}
     end
 
     def breadcrumbs(resource)
       path = resource.respond_to?(:path) ? resource.path : ''
-      links = ["<a href=\"#{resource_path(resource, :path => '/root')}\">&#8730;&#175; Root</a>"]
+      links = [%Q{<a href="#{resource_path(resource, :path => '/root')}">&#8730;&#175; Root</a>}]
       path.split('/').inject('') do |parent,elem|
-        links << "<a href=\"#{resource_path(resource, :path => (parent/elem).urlpath)}\">#{elem}</a>"
+        links << %Q{<a href="#{resource_path(resource, :path => (parent/elem).urlpath)}">#{elem}</a>}
         parent/elem
       end
 
       result = []
       links.each_with_index do |link,i|
-        result << "<li class=\"breadcrumb#{i==0 ? ' first' : ''}#{i==links.size-1 ? ' last' : ''}\">#{link}</li>\n"
+        result << %Q{<li class="breadcrumb#{i==0 ? ' first' : ''}#{i==links.size-1 ? ' last' : ''}">#{link}</li>}
       end
-      result.join("<li class=\"breadcrumb\">/</li>\n")
+      result.join(%Q{<li class="breadcrumb">/</li>})
     end
 
     def resource_path(resource, opts = {})
@@ -211,8 +221,8 @@ module Wiki
     def image(name, opts = {})
       opts[:alt] ||= ''
       attrs = []
-      opts.each_pair {|key,value| attrs << "#{key}=\"#{escape_html value}\"" }
-      "<img src=\"#{image_path name}\" #{attrs.join(' ')}/>"
+      opts.each_pair {|key,value| attrs << %Q{#{key}="#{escape_html value}"} }
+      %Q{<img src="#{image_path name}" #{attrs.join(' ')}/>}
     end
 
     def tab_selected(action)
@@ -221,11 +231,11 @@ module Wiki
 
     def show_messages
       if @messages
-        out = "<ul>\n"
+        out = '<ul>'
         @messages.each do |msg|
-          out += "  <li class=\"#{msg[0]}\">#{escape_html msg[1]}</li>\n"
+          out += %Q{<li class="#{msg[0]}">#{escape_html msg[1]}</li>}
         end
-        out += "</ul>\n"
+        out += '</ul>'
         return out
       end
       ''
@@ -255,13 +265,7 @@ module Wiki
     def edit_content(page)
       return params[:content] if params[:content]
       return :no_text_file.t(:page => page.path, :mime => page.mime) if !page.mime.text?
-      if params[:pos] && params[:len]
-        pos = [[0, params[:pos].to_i].max, page.content.size].min
-        len = [0, params[:len].to_i].max
-        page.content[pos, len]
-      else
-        page.content
-      end
+      page.content(params[:pos], params[:len])
     end
 
   end

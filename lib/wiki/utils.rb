@@ -31,19 +31,14 @@ module Wiki
 
     class << self
       def load_locale(path)
-        if !@loaded.include?(path)
-          lang = Config.locale
-          locale = load(path, lang)
-          locale.merge!(load(path, $1)) if lang =~ /^(\w+)-\w+$/
-          @locale.merge!(locale)
-          @loaded << path
-        end
+        load(path.sub('LANG', $1)) if Config.locale =~ /^(\w+)(_|-)/
+        load(path.sub('LANG', Config.locale))
       end
 
       def translate(key, args = {})
         args = args.with_indifferent_access
         if @locale[key]
-          @locale[key].gsub(/\{\{(\w+)\}\}/) {|x| args[$1] || x }
+          @locale[key].gsub(/#\{(\w+)\}/) {|x| args[$1] || x }
         else
           "##{key}"
         end
@@ -51,8 +46,13 @@ module Wiki
 
       private
 
-      def load(path, lang)
-        YAML.load_file(File.join(path, "#{lang}.yml")) rescue {}
+      def load(path)
+        if !@loaded.include?(path)
+          @locale.merge!(YAML.load_file(path))
+          @loaded << path
+        end
+      rescue
+        nil
       end
     end
   end
@@ -67,21 +67,25 @@ module Wiki
     end
 
     def sass(name, opts = {})
-      sass_opts = SASS_OPTIONS.merge(opts[:options] || {})
-      engine = ::Sass::Engine.new(Symbol === name ? lookup_template(:sass, name) : name, sass_opts)
+      template = Symbol === name ? lookup_template(:sass, name) : name
+      name = Symbol === name ? "#{name}.sass" : 'inline sass'
+      sass_opts = SASS_OPTIONS.merge(opts[:options] || {}).merge(:filename => name)
+      engine = ::Sass::Engine.new(template, sass_opts)
       engine.render
     end
 
     def haml(name, opts = {})
-      output = render_haml(Symbol === name ? lookup_template(:haml, name) : name, opts)
-      output = render_haml(lookup_template(:haml, 'layout'), opts) { output } if opts[:layout] != false
+      output = render_haml(name, opts)
+      output = render_haml(:layout, opts) { output } if opts[:layout] != false
       output
     end
 
     private
 
-    def render_haml(template, opts = {}, &block)
-      haml_opts = HAML_OPTIONS.merge(opts[:options] || {})
+    def render_haml(name, opts = {}, &block)
+      template = Symbol === name ? lookup_template(:haml, name) : name
+      name = Symbol === name ? "#{name}.haml" : 'inline haml'
+      haml_opts = HAML_OPTIONS.merge(opts[:options] || {}).merge(:filename => name)
       engine = ::Haml::Engine.new(template, haml_opts)
       engine.render(self, opts[:locals] || {}, &block)
     end

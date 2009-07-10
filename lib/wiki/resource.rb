@@ -158,14 +158,15 @@ module Wiki
     end
 
     # Set page content for preview
-    def preview_content=(content)
+    def content=(content)
       @mime = nil
       @content = content
     end
 
     # Page content
-    def content
-      @content || (@object && @object.contents)
+    def content(pos = nil, len = nil)
+      c = @content || (@object && @object.contents)
+      pos ? c[[[0, pos.to_i].max, c.size].min, [0, len.to_i].max] : c
     end
 
     # Check if there is no unsaved content
@@ -173,7 +174,7 @@ module Wiki
       !new? && !@content
     end
 
-    # Write page (commit)
+    # Write page and commit
     def write(content, message, author = nil)
       if !content.respond_to? :path
         content.gsub!("\r\n", "\n")

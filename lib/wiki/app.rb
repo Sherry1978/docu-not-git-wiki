@@ -18,7 +18,7 @@ module Wiki
       @app = app
       @logger = opts[:logger] || Logger.new(nil)
 
-      I18n.load_locale(File.join(Config.root, 'locale'))
+      I18n.load_locale(File.join(Config.root, 'locale', 'LANG.yml'))
 
       if File.exists?(Config.git.repository) && File.exists?(Config.git.workspace)
         @logger.info 'Opening repository'
@@ -240,13 +240,14 @@ module Wiki
       begin
         forbid(:version_conflict.t => @resource.commit.sha != params[:sha]) # TODO: Implement conflict diffs
         if action?(:upload) && params[:file]
+          invoke_hook :before_page_save, @resource
           @resource.write(params[:file][:tempfile], :file_uploaded.t, @user.author)
         elsif action?(:edit) && params[:content]
-          preview(:edit, params[:content])
+          invoke_hook :before_page_save, @resource
           content = if params[:pos]
                       pos = [[0, params[:pos].to_i].max, @resource.content.size].min
-                      len = params[:len] ? [0, params[:len].to_i].max : @resource.content.size - params[:len]
-                      @resource.content[0,pos].to_s + params[:content] + @resource.content[pos+len..-1].to_s
+                      len = [0, params[:len].to_i].max
+                      @resource.content(0, pos) + params[:content] + @resource.content(pos + len, @resource.content.size)
                     else
                       params[:content]
                     end
@@ -268,9 +269,10 @@ module Wiki
         pass if name_clash?(params[:path])
         @resource = Page.new(@repo, params[:path])
         if action?(:upload) && params[:file]
+          invoke_hook :before_page_save, @resource
           @resource.write(params[:file][:tempfile], "File #{@resource.path} uploaded", @user.author)
         elsif action?(:new)
-          preview(:new, params[:content])
+          invoke_hook :before_page_save, @resource
           @resource.write(params[:content], params[:message], @user.author)
         else
           redirect '/new'
@@ -284,18 +286,6 @@ module Wiki
     end
 
     private
-
-    def preview(template, content)
-      if params[:preview]
-        message(:error, :empty_commit_message.t) if params[:message].empty?
-        @resource.preview_content = content
-        if @resource.mime.text?
-          engine = Engine.find!(@resource)
-          @preview = engine.render(@resource) if engine.layout?
-        end
-        halt haml(template)
-      end
-    end
 
     def name_clash?(path)
       path = path.to_s.urlpath
