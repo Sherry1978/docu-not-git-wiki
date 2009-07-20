@@ -4,6 +4,7 @@ require 'rubygems'
 require 'sinatra'
 require 'grit'
 require 'RedCloth'
+require 'builder'
 
 module GitWiki
   class << self
@@ -24,7 +25,7 @@ class Page
       new(blob)
     end
   end
-
+  
   def self.find_or_create(name, rev=nil)
     path = name + GitWiki.extension
     commit = GitWiki.repository.commit(rev || GitWiki.repository.head.commit)
@@ -98,6 +99,13 @@ end
 get '/pages' do
   @pages = Page.find_all
   erb :list
+end
+
+get '/pages.xml' do
+  @pages = Page.find_all
+  xml = Builder::XmlMarkup.new(:indent => 2 )
+  content_type 'application/xml', :charset => 'utf-8'
+  builder :list
 end
 
 get '/pages/:page/?' do

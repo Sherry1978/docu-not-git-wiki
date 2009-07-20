@@ -19,6 +19,13 @@ h2. Features
 * revision history
 
 
+h2. To-Do
+
+* Revert links
+* attachments, somehow
+* Style it pretty
+* add RSS feeds
+
 h2. Installation and Use
 
 
