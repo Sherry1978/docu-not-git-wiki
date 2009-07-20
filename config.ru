@@ -1,3 +1,5 @@
+#!/usr/local/bin/ruby
+
 require 'sinatra/lib/sinatra.rb'
 require 'rubygems'
 
