@@ -30,9 +30,7 @@ h2. To-Do
 
 h2. Installation and Use
 
-
-
-This git-wiki requires Sinatra, Grit, Haml, and RDiscount, all available
+This particular git-wiki requires Sinatra, Grit, Haml, and RDiscount, all available
 on RubyGems. Here's how to create a new wiki and run it:
 
 bq. @git clone git-wiki my-wiki@
