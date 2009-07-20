@@ -1,0 +1,5 @@
+<% if @page %>
+  <%= @page.to_html %>
+<% else %>
+  <p>This page doesn't exist yet. Click <%= @page.edit_url %> to start it.</p>
+<% end %>

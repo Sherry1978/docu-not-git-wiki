@@ -1,0 +1,6 @@
+
+<ul>
+  <% @page.log.each do |commit| %>
+    <li><%= commit['committed_date'] %> | <a href="<%= commit['id'] %>"><%= commit['message'] %></a></li>
+  <% end %>
+</ul>

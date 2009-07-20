@@ -1,0 +1,5 @@
+<ul id="list">
+  <% @pages.each do |page| %>
+    <li><a href="<%= page.url %>" class="page existing"><%= page %></a></li>
+  <% end %>
+</ul>

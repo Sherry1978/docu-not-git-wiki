@@ -3,7 +3,7 @@
 require 'rubygems'
 require 'sinatra'
 require 'grit'
-require 'rdiscount'
+require 'RedCloth'
 
 module GitWiki
   class << self
@@ -29,7 +29,7 @@ class Page
     path = name + GitWiki.extension
     commit = GitWiki.repository.commit(rev || GitWiki.repository.head.commit)
     blob = commit.tree/path
-    new(blob || Grit::Blob.create(GitWiki.repository, :name => path))
+    new(blob || Grit::Blob.create(GitWiki.repository, :name => path, :data => "This page doesn't exist yet. Click <a href='#{name}/edit'>here</a> to start it." ))
   end
 
   def self.wikify(content)
@@ -70,7 +70,7 @@ class Page
   end
 
   def to_html
-    Page.wikify(RDiscount.new(content).to_html)
+    Page.wikify(RedCloth.new(content).to_html)
   end
 
   def log
@@ -92,32 +92,32 @@ end
 
 get '/' do
   @page = Page.find_or_create(GitWiki.root_page)
-  haml :show
+  erb :show
 end
 
-get '/pages/' do
+get '/pages' do
   @pages = Page.find_all
-  haml :list
+  erb :list
 end
 
 get '/pages/:page/?' do
   @page = Page.find_or_create(params[:page])
-  haml :show
+  erb :show
 end
 
 get '/pages/:page/revisions/' do
   @page = Page.find_or_create(params[:page])
-  haml :log
+  erb :log
 end
 
 get '/pages/:page/revisions/:rev' do
   @page = Page.find_or_create(params[:page], params[:rev])
-  haml :show
+  erb :show
 end
 
 get '/pages/:page/edit' do
   @page = Page.find_or_create(params[:page])
-  haml :edit
+  erb :edit
 end
 
 post '/pages/:page/edit' do

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<head>
+<title> <%= @page || GitWiki::wiki_name %></title>
+<link rel="stylesheet" href="/wiki.css" type="text/css" media="screen" title="no title" charset="utf-8">
+</head>
+
+<body>
+<h1 id="title">
+  <a href="/" class="home"><%= GitWiki::wiki_name %></a>
+  <% if @page and @page.url != '/' %>
+    / <a href="<%= @page.url %>"><%= @page %></a>
+  <% end %>
+</h1>
+
+<ul id="actions">
+  <% if @page %>
+    <li><a href="<%= @page.edit_url %>">edit</a></li>
+    <li><a href="<%= @page.log_url %>">log</a></li>
+  <% end %>
+    <li><a href="/pages">all</a></li>
+</ul>
+
+<div id="content">
+<%= yield %>
+</div>
+
+</body>
+
+</html>
