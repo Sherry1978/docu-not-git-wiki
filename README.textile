@@ -26,9 +26,11 @@ h2. Installation and Use
 This git-wiki requires Sinatra, Grit, Haml, and RDiscount, all available
 on RubyGems. Here's how to create a new wiki and run it:
 
-    git clone git-wiki my-wiki
-    cd my-wiki
-    ./git-wiki.rb # and point browser to http://localhost:4567/
+bq. @git clone git-wiki my-wiki@
+
+bq. @cd my-wiki@
+
+bq. @./git-wiki.rb # and point browser to http://localhost:4567/@
 
 You can still run git-wiki with Rack if you want; create a trivial
 config.ru (`require 'git-wiki'; run Sinatra::Application`) and then
@@ -62,21 +64,20 @@ on and adding a post-update hook to reset the index is a reasonable
 "FAQ - http://git.or.cz/gitwiki/GitFaq#push-is-reverse-of-fetch":http://git.or.cz/gitwiki/GitFaq#push-is-reverse-of-fetch
 
 h2. License
+  
+_Copyright (C) 2008 Simon Rozet <Simon@Rozet.Name>_
+
+_Copyright (C) 2009 Decklin Foster <Decklin@Red-Bean.Com>_
+
+DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
+
+Version 2, December 2004
+
+Everyone Is Permitted to Copy and Distribute Verbatim or Modified
+Copies of This License Document, and Changing It Is Allowed As Long
+As the Name Is Changed.
 
 
+TERMS AND CONDITIONS FOR COPYING, DISTRIBUTION AND MODIFICATION:
 
-
-    Copyright (C) 2008 Simon Rozet <simon@rozet.name>
-    Copyright (C) 2009 Decklin Foster <decklin@red-bean.com>
-
-               DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
-                       Version 2, December 2004
-
-    Everyone is permitted to copy and distribute verbatim or modified
-    copies of this license document, and changing it is allowed as long
-    as the name is changed.
-
-               DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
-      TERMS AND CONDITIONS FOR COPYING, DISTRIBUTION AND MODIFICATION
-
-     0. You just DO WHAT THE FUCK YOU WANT TO.
+You Just Do What the Fuck You Want To.
