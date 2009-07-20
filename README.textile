@@ -2,7 +2,7 @@ h1. moocha's git-wiki
 
 bq. Forked from "decklin's":http://github.com/decklin/git-wiki/tree/master
 
-<hr/>
+
 
 h2. Features
 
@@ -21,7 +21,7 @@ h2. Features
 
 h2. Installation and Use
 
-<hr/>
+
 
 This git-wiki requires Sinatra, Grit, Haml, and RDiscount, all available
 on RubyGems. Here's how to create a new wiki and run it:
@@ -36,7 +36,7 @@ run rackup.
 
 h2. Configuration
 
-<hr/>
+
 
 At the end of git-wiki.rb is a `configure` block (which applies to all
 environments). Edit it, or copy it to your rackup script and override
@@ -45,7 +45,7 @@ development/testing/production if you want.
 
 h2. Caveats
 
-<hr/>
+
 
 
 Because we use Grit by modifying the workdir and then calling `git
@@ -59,11 +59,11 @@ repo directly, so ensuring that receive.denyNonFastForwards is turned
 on and adding a post-update hook to reset the index is a reasonable
 (if not very clean) work-around.
 
-"faq":http://git.or.cz/gitwiki/GitFaq#push-is-reverse-of-fetch
+"FAQ - http://git.or.cz/gitwiki/GitFaq#push-is-reverse-of-fetch":http://git.or.cz/gitwiki/GitFaq#push-is-reverse-of-fetch
 
 h2. License
 
-<hr/>
+
 
 
     Copyright (C) 2008 Simon Rozet <simon@rozet.name>
