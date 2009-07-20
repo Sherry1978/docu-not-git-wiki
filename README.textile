@@ -25,6 +25,8 @@ h2. To-Do
 * attachments, somehow
 * Style it pretty
 * add RSS feeds
+* rename title
+* delete articles
 
 h2. Installation and Use
 
