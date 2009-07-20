@@ -1,0 +1,82 @@
+h1. moocha's git-wiki
+
+bq. Forked from "decklin's":http://github.com/decklin/git-wiki/tree/master
+
+<hr/>
+
+h2. Features
+
+* Standalone Sinatra, no rack
+* Self-contained repository – wiki articles saved right inside
+
+* url's under /pages
+* magic wiki links to link between articles
+
+* textile, instead of markdown. that's just preference.
+* erb instead of haml. i don't like haml
+
+* custom commit messages
+* revision history
+
+
+h2. Installation and Use
+
+<hr/>
+
+This git-wiki requires Sinatra, Grit, Haml, and RDiscount, all available
+on RubyGems. Here's how to create a new wiki and run it:
+
+    git clone git-wiki my-wiki
+    cd my-wiki
+    ./git-wiki.rb # and point browser to http://localhost:4567/
+
+You can still run git-wiki with Rack if you want; create a trivial
+config.ru (`require 'git-wiki'; run Sinatra::Application`) and then
+run rackup.
+
+h2. Configuration
+
+<hr/>
+
+At the end of git-wiki.rb is a `configure` block (which applies to all
+environments). Edit it, or copy it to your rackup script and override
+the defaults. You can use this to set different wiki repositories for
+development/testing/production if you want.
+
+h2. Caveats
+
+<hr/>
+
+
+Because we use Grit by modifying the workdir and then calling `git
+add`, git-wiki must be run with a non-bare wiki repo. If you want to
+clone this repo and then push to it, you should read the [Git FAQ
+entry][faq] about the perils of pushing to a repo with a checked-out
+workdir.
+
+In practice, you will hopefully never edit the workdir of the "live"
+repo directly, so ensuring that receive.denyNonFastForwards is turned
+on and adding a post-update hook to reset the index is a reasonable
+(if not very clean) work-around.
+
+"faq":http://git.or.cz/gitwiki/GitFaq#push-is-reverse-of-fetch
+
+h2. License
+
+<hr/>
+
+
+    Copyright (C) 2008 Simon Rozet <simon@rozet.name>
+    Copyright (C) 2009 Decklin Foster <decklin@red-bean.com>
+
+               DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
+                       Version 2, December 2004
+
+    Everyone is permitted to copy and distribute verbatim or modified
+    copies of this license document, and changing it is allowed as long
+    as the name is changed.
+
+               DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
+      TERMS AND CONDITIONS FOR COPYING, DISTRIBUTION AND MODIFICATION
+
+     0. You just DO WHAT THE FUCK YOU WANT TO.
