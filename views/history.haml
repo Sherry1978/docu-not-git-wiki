@@ -1,9 +1,9 @@
-- menu :view, :edit, :new
-- title :history_of.t(:path => @resource.pretty_name)
+- menu :view, :edit
+- title :history_of.t(:path => @resource.title)
 %form{:action=> action_path(@resource, :diff) }
   %div
     = show_messages
-    %input{:type=>'submit', :value=>'Show Diff'}
+    %input{:type=>'submit', :value=>:show_diff.t}
     %br
   %table.history
     %thead

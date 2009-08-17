@@ -1,4 +1,6 @@
-require 'RMagick'
+author      'Daniel Mendler'
+description 'Image rendering engine'
+require     'RMagick'
 
 Engine.create(:image, :priority => 2, :layout => false, :cacheable => true) do
   def svg?(page); page.mime.to_s =~ /svg/; end
@@ -11,7 +13,9 @@ Engine.create(:image, :priority => 2, :layout => false, :cacheable => true) do
       image = Magick::Image.from_blob(page.content).first
       image.change_geometry(context['geometry']) { |w,h| image.resize!(w, h) } if context['geometry']
       image.format = 'png' if svg?(page)
-      image.to_blob
+      result = image.to_blob
+      image.destroy!
+      result
     else
       super
     end

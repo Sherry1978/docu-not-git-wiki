@@ -1,17 +1,17 @@
-require 'pstore'
+author      'Daniel Mendler'
+description 'Persistent login'
+require     'pstore'
 
 class Wiki::App
   TOKEN_LENGTH = 64
-  TOKEN_LIFETIME = 24*60*60*30
+  TOKEN_LIFETIME = 24*60*60*365
   TOKEN_NAME = 'git_wiki_token'
 
-  def login_tokens
-    @login_tokens ||= PStore.new(File.join(Wiki::Config.cache, 'tokens.pstore'))
-  end
+  lazy_reader(:login_tokens) { PStore.new(File.join(Wiki::Config.cache, 'tokens.pstore')) }
 
   def get_login_token(token)
     login_tokens.transaction(true) do |store|
-      store[token] ? store[token][0] : nil
+      store[token] && store[token][0]
     end
   end
 
@@ -43,8 +43,8 @@ class Wiki::App
     end
   end
 
-  add_hook(:after_action) do |action|
-    if action == '/login'
+  add_hook(:after_action) do |method, path|
+    if path == '/login'
       if !@user.anonymous?
         ch = ('a'..'z').to_a + ('A'..'Z').to_a + ('0'..'9').to_a
         token = ''
@@ -52,7 +52,7 @@ class Wiki::App
         response.set_cookie(TOKEN_NAME, :value => token, :expires => Time.now + TOKEN_LIFETIME)
         set_login_token(token, @user.name)
       end
-    elsif action == '/logout'
+    elsif path == '/logout'
       token = request.cookies[TOKEN_NAME]
       delete_login_token(token)
       response.delete_cookie(TOKEN_NAME)

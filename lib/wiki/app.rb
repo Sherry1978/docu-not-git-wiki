@@ -18,7 +18,7 @@ module Wiki
       @app = app
       @logger = opts[:logger] || Logger.new(nil)
 
-      I18n.load_locale(File.join(Config.root, 'locale', 'LANG.yml'))
+      I18n.load_locale(File.join(File.dirname(__FILE__), 'locale.yml'))
 
       if File.exists?(Config.git.repository) && File.exists?(Config.git.workspace)
         @logger.info 'Opening repository'
@@ -38,7 +38,28 @@ module Wiki
       Plugin.load('*')
       Plugin.start
 
-      @logger.info self.class.dump_routes
+      @logger.debug self.class.dump_routes
+    end
+
+    class<< self
+      attr_reader :plugin_files
+
+      def public_files(*files)
+        if !@plugin_files
+          @plugin_files = {}
+          get "/sys/:file", :patterns => {:file => /.*/} do
+            if path = self.class.plugin_files[params[:file]]
+              cache_control :last_modified => File.mtime(path), :static => true
+              send_file path
+            else
+              pass
+            end
+          end
+        end
+        name = File.dirname(Plugin.current.name)
+        dir = File.dirname(Plugin.current.file)
+        files.each { |file| @plugin_files[name/file] = File.join(dir, file) }
+      end
     end
 
     # Executed before each request
@@ -80,21 +101,6 @@ module Wiki
       haml :user, :layout => false
     end
 
-    get '/sys/sidebar' do
-      if page = Page.find(@repo, :sidebar.t)
-        engine = Engine.find!(page)
-        if engine.layout?
-          #cache_control :etag => page.commit.sha, :last_modified => page.latest_commit.date
-          cache_control :max_age => 120
-          engine.render(page)
-        else
-          "<span class=\"error\">#{:no_engine_found.t(page.name)}</span>"
-        end
-      else
-        "<a href=\"/#{page.name}/new\">#{:create_sidebar.t}</a>"
-      end
-    end
-
     get '/' do
       redirect Config.main_page.urlpath
     end
@@ -107,7 +113,7 @@ module Wiki
     post '/login' do
       begin
         session[:user] = @user = User.authenticate(params[:user], params[:password])
-	redirect '/'
+	redirect session.delete(:goto) || '/'
       rescue StandardError => error
         message :error, error
         haml :login
@@ -157,7 +163,7 @@ module Wiki
         params[:path] = params[:style] + '.sass'
         show
       rescue Resource::NotFound
-        raise if !%w(screen print reset).include?(params[:style])
+        pass if !%w(screen print reset).include?(params[:style])
         # Fallback to default style
         cache_control :max_age => 120
         content_type 'text/css', :charset => 'utf-8'
@@ -240,22 +246,23 @@ module Wiki
       begin
         forbid(:version_conflict.t => @resource.commit.sha != params[:sha]) # TODO: Implement conflict diffs
         if action?(:upload) && params[:file]
-          invoke_hook :before_page_save, @resource
-          @resource.write(params[:file][:tempfile], :file_uploaded.t, @user.author)
+          invoke_hook :page_save, @resource do
+            @resource.write(params[:file][:tempfile], :file_uploaded.t, @user.author)
+          end
         elsif action?(:edit) && params[:content]
-          invoke_hook :before_page_save, @resource
-          content = if params[:pos]
-                      pos = [[0, params[:pos].to_i].max, @resource.content.size].min
-                      len = [0, params[:len].to_i].max
-                      @resource.content(0, pos) + params[:content] + @resource.content(pos + len, @resource.content.size)
-                    else
-                      params[:content]
-                    end
-          @resource.write(content, params[:message], @user.author)
+          invoke_hook :page_save, @resource do
+            content = if params[:pos]
+                        pos = [[0, params[:pos].to_i].max, @resource.content.size].min
+                        len = [0, params[:len].to_i].max
+                        @resource.content(0, pos) + params[:content] + @resource.content(pos + len, @resource.content.size)
+                      else
+                        params[:content]
+                      end
+            @resource.write(content, params[:message], @user.author)
+          end
         else
           redirect((@resource.path/'edit').urlpath)
         end
-        invoke_hook :page_saved, @resource
         redirect @resource.path.urlpath
       rescue StandardError => error
         message :error, error
@@ -269,15 +276,16 @@ module Wiki
         pass if name_clash?(params[:path])
         @resource = Page.new(@repo, params[:path])
         if action?(:upload) && params[:file]
-          invoke_hook :before_page_save, @resource
-          @resource.write(params[:file][:tempfile], "File #{@resource.path} uploaded", @user.author)
+          invoke_hook :page_save, @resource do
+            @resource.write(params[:file][:tempfile], "File #{@resource.path} uploaded", @user.author)
+          end
         elsif action?(:new)
-          invoke_hook :before_page_save, @resource
-          @resource.write(params[:content], params[:message], @user.author)
+          invoke_hook :page_save, @resource do
+            @resource.write(params[:content], params[:message], @user.author)
+          end
         else
           redirect '/new'
         end
-        invoke_hook :page_saved, @resource
         redirect @resource.path.urlpath
       rescue StandardError => error
         message :error, error
@@ -304,40 +312,20 @@ module Wiki
       patterns.any? {|pattern| pattern =~ path }
     end
 
-    # Show page or tree
+    # Show resource
     def show
       cache_control :etag => params[:sha], :validate_only => true
       @resource = Resource.find!(@repo, params[:path], params[:sha])
+      cache_control :etag => @resource.latest_commit.sha, :last_modified => @resource.latest_commit.date
 
-      if @resource.tree?
-        root = Tree.find!(@repo, '/', params[:sha])
-        cache_control :etag => root.commit.sha, :last_modified => root.commit.date
-
-        @children = walk_tree(root, params[:path].to_s.cleanpath.split('/'), 0)
-        haml :tree
+      engine = Engine.find!(@resource, params[:output])
+      @content = engine.render(@resource, params, no_cache?)
+      if engine.layout?
+        haml :resource
       else
-        cache_control :etag => @resource.latest_commit.sha, :last_modified => @resource.latest_commit.date
-
-        engine = Engine.find!(@resource, params[:output])
-        @content = engine.render(@resource, params)
-        if engine.layout?
-          haml :page
-        else
-          content_type engine.mime(@resource).to_s
-          @content
-        end
+        content_type engine.mime(@resource).to_s
+        @content
       end
-    end
-
-    # Walk tree and return array with level counter
-    def walk_tree(tree, path, level)
-      result = []
-      tree.children.each do |child|
-        open = child.tree? && (child.path == path[0..level].join('/'))
-        result << [level, child, open]
-        result += walk_tree(child, path, level + 1) if open
-      end
-      result
     end
 
     # Boilerplate for new pages

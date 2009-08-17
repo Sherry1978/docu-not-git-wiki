@@ -8,15 +8,16 @@ $LOAD_PATH << ::File.join(path, 'lib')
 Dir[::File.join(path, 'deps', '*', 'lib')].each {|x| $: << x }
 
 require 'rubygems'
-require 'wiki/app'
+require 'fileutils'
+require 'logger'
+require 'rack/patched_request'
 require 'rack/path_info'
 require 'rack/esi'
 require 'rack/session/pstore'
 require 'rack/reverseip'
 require 'rack/ban_ip'
 require 'rack/anti_spam'
-require 'fileutils'
-require 'logger'
+require 'wiki/app'
 
 config_file = if ENV['WIKI_CONFIG']
   ENV['WIKI_CONFIG']
@@ -95,11 +96,9 @@ use Rack::ESI, :no_cache => true
 use Rack::CommonLogger, logger
 
 if env == 'deployment' || env == 'production'
-  require 'rack/capabilities'
   require 'rack/cache'
-  require 'rack/cache/purge'
-  use Rack::Capabilities
-  use Rack::Cache::Purge
+  require 'rack/purge'
+  use Rack::Purge
   use Rack::Cache,
     :verbose     => false,
     :metastore   => "file:#{::File.join(Wiki::Config.cache, 'rack', 'meta')}",

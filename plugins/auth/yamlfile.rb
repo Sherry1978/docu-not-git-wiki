@@ -1,18 +1,18 @@
-require 'yaml/store'
-require 'digest'
+author      'Daniel Mendler'
+description 'YAML based user storage'
+require     'yaml/store'
+require     'digest'
 
 User.define_service(:yamlfile) do
   def initialize
-    @store ||= begin
-                 FileUtils.mkdir_p File.dirname(Config.auth.store), :mode => 0755
-                 YAML::Store.new(Config.auth.store)
-               end
+    FileUtils.mkdir_p File.dirname(Config.auth.store), :mode => 0755
+    @store = YAML::Store.new(Config.auth.store)
   end
 
   def find(name)
     @store.transaction(true) do |store|
       user = store[name]
-      user ? User.new(name, user['email'], false) : nil
+      user && User.new(name, user['email'], false)
     end
   end
 

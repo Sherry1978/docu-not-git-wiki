@@ -1,13 +1,14 @@
 require 'wiki/extensions'
 require 'wiki/utils'
 require 'mimemagic'
+require 'cgi'
 
 module Wiki
   # Wiki helper methods which are mainly used in the views
   # TODO: Restructure this a little bit. Separate view
   # from controller helpers maybe.
   module Helper
-    attr_reader_with_default :blocks => lambda { Hash.with_indifferent_access('') }
+    lazy_reader(:blocks) { Hash.with_indifferent_access('') }
 
     def start_timer
       @start_time = Time.now
@@ -22,22 +23,24 @@ module Wiki
     end
 
     def include_block(name)
-      content_hook(:"before_#{name}") +
-        blocks[name] +
-        content_hook(:"after_#{name}")
+      content_hook(name) { blocks[name] }
     end
 
     def render_block(name, &block)
-      define_block(name, nil, &block)
-      include_block(name)
+      content_hook(name) { capture_haml(&block) }
     end
 
     def footnote(content = nil, &block); define_block(:footnote, content, &block); end
-    def head(content = nil, &block);   define_block(:head, content, &block);   end
-    def title(content = nil, &block);  define_block(:title, content, &block);  end
+    def head(content = nil, &block);     define_block(:head, content, &block);     end
+    def title(content = nil, &block);    define_block(:title, content, &block);    end
 
     def menu(*menu)
       define_block :menu, haml(:menu, :layout => false, :locals => { :menu => menu })
+    end
+
+    def include_menu
+      blocks.include?(:menu) || menu
+      include_block(:menu)
     end
 
     # Access the underlying Rack session.
@@ -70,6 +73,10 @@ module Wiki
       halt BlockFile.open(file, 'rb')
     rescue Errno::ENOENT
       raise NotFound
+    end
+
+    def no_cache?
+      env['HTTP_PRAGMA'] == 'no-cache' || env['HTTP_CACHE_CONTROL'].to_s.include?('no-cache')
     end
 
     # Cache control for resource
@@ -144,29 +151,6 @@ module Wiki
       html
     end
 
-    TREE_IMAGES = [
-              [/image\/.*/, 'image', 'Image'],
-              [/video\/.*/, 'video', 'Video'],
-              [/application\/pdf/, 'pdf', 'PDF'],
-              [/zip|compressed/, 'archive', 'Compressed File'],
-              [/.*/, 'page', 'Page']
-             ]
-
-    def tree_link(level, resource, open)
-      level += 1 if resource.page?
-      path = open ? resource_path(resource, :path => '..') : resource_path(resource)
-      html = %Q{<a style="padding-left: #{level * 16}px" href="#{path}" title="#{open ? :close.t : :open.t}">}
-      if resource.page?
-        mime = resource.mime.to_s
-        img = TREE_IMAGES.find { |img| mime =~ img[0] }
-        html << image(img[1], :alt => img[2])
-      else
-        html << image(open ? :tree_open : :tree_closed, :alt => '') + image(:tree, :alt => 'Tree')
-      end
-      html << " #{resource.name}</a>"
-      html
-    end
-
     def date(t)
       %Q{<span class="date seconds_#{t.to_i}">#{t.strftime('%d %h %Y %H:%M')}</span>}
     end
@@ -187,7 +171,7 @@ module Wiki
     end
 
     def resource_path(resource, opts = {})
-      sha = opts.delete(:sha) || (resource && !resource.current? ? resource.commit : nil) || ''
+      sha = opts.delete(:sha) || (resource && !resource.current? && resource.commit) || ''
       sha = sha.sha if sha.respond_to?(:sha)
       if path = opts.delete(:path)
         if !path.begins_with? '/'
@@ -206,50 +190,32 @@ module Wiki
       (path.to_s/action.to_s).urlpath
     end
 
-    def static_path(name)
-      "/static/#{name}"
-    end
-
-    def script_path(name)
-      static_path "script/#{name}"
-    end
-
-    def image_path(name)
-      static_path "images/#{name}.png"
-    end
-
-    def image(name, opts = {})
-      opts[:alt] ||= ''
-      attrs = []
-      opts.each_pair {|key,value| attrs << %Q{#{key}="#{escape_html value}"} }
-      %Q{<img src="#{image_path name}" #{attrs.join(' ')}/>}
-    end
-
     def tab_selected(action)
-      action?(action) ? {:class=>'ui-tabs-selected'} : {}
+      action?(action) ? {:class=>'tabs-selected'} : {}
     end
 
     def show_messages
-      if @messages
+      if session[:messages]
         out = '<ul>'
-        @messages.each do |msg|
+        session[:messages].each do |msg|
           out += %Q{<li class="#{msg[0]}">#{escape_html msg[1]}</li>}
         end
-        out += '</ul>'
-        return out
+        session.delete(:messages)
+        out + '</ul>'
+      else
+        ''
       end
-      ''
     end
 
     def message(level, *messages)
-      @messages ||= []
+      session[:messages] ||= []
       messages.flatten.each do |msg|
         if msg.respond_to? :messages
-          @messages += msg.messages.map { |m| [level, m] }
+          session[:messages] += msg.messages.map { |m| [level, m] }
         elsif msg.respond_to? :message
-          @messages << [level, msg.message]
+          session[:messages] << [level, msg.message]
         else
-          @messages << [level, msg]
+          session[:messages] << [level, msg]
         end
       end
     end

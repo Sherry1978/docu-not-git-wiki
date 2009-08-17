@@ -2,6 +2,7 @@ require 'wiki/extensions'
 require 'haml'
 require 'sass'
 require 'yaml'
+require 'cgi'
 
 module Wiki
   class MultiError < StandardError
@@ -17,6 +18,8 @@ module Wiki
   end
 
   class BlockFile < ::File
+    alias to_path path
+
     def each
       rewind
       while part = read(8192)
@@ -31,28 +34,23 @@ module Wiki
 
     class << self
       def load_locale(path)
-        load(path.sub('LANG', $1)) if Config.locale =~ /^(\w+)(_|-)/
-        load(path.sub('LANG', Config.locale))
+        if !@loaded.include?(path)
+          locale = YAML.load_file(path)
+          @locale.update(locale[$1] || {}) if Config.locale =~ /^(\w+)(_|-)/
+          @locale.update(locale[Config.locale] || {})
+          @loaded << path
+        end
+      rescue
+        nil
       end
 
       def translate(key, args = {})
         args = args.with_indifferent_access
         if @locale[key]
-          @locale[key].gsub(/#\{(\w+)\}/) {|x| args[$1] || x }
+          @locale[key].gsub(/#\{(\w+)\}/) {|x| args.include?($1) ? args[$1].to_s : x }
         else
           "##{key}"
         end
-      end
-
-      private
-
-      def load(path)
-        if !@loaded.include?(path)
-          @locale.merge!(YAML.load_file(path))
-          @loaded << path
-        end
-      rescue
-        nil
       end
     end
   end
@@ -62,8 +60,8 @@ module Wiki
     SASS_OPTIONS = { :style => :compat }
 
     class << self
-      attr_reader_with_default :paths => lambda { [File.join(Config.root, 'views')] }
-      attr_reader_with_default :template_cache => {}
+      lazy_reader(:paths) { [File.join(Config.root, 'views')] }
+      lazy_reader :template_cache, {}
     end
 
     def sass(name, opts = {})
@@ -112,28 +110,38 @@ module Wiki
 
     module InstanceMethods
       def invoke_hook(type, *args)
-        self.class.invoke_hook(self, type, *args)
+        if block_given?
+          result = []
+          begin
+            result += self.class.invoke_hook(self, :"before_#{type}", *args) << yield
+          ensure
+            result += self.class.invoke_hook(self, :"after_#{type}", *args)
+          end
+          result
+        else
+          self.class.invoke_hook(self, type, *args)
+        end
       end
 
-      def content_hook(type, *args)
-        invoke_hook(type, *args).map(&:to_s).join
+      def content_hook(type, *args, &block)
+        invoke_hook(type, *args, &block).map(&:to_s).join
       rescue => ex
-        "<span class=\"error\">#{escape_html ex.message}</span>"
+        "<span class=\"error\">#{ex.message}</span>"
       end
     end
 
     module ClassMethods
+      lazy_reader :hooks, {}
+
       def add_hook(type, &block)
-        @hooks ||= {}
-        (@hooks[type] ||= []) << block
+        (hooks[type] ||= []) << block.to_method(self)
       end
 
       def invoke_hook(source, type, *args)
-        @hooks ||= {}
         result = []
         while type
-          result += @hooks[type].to_a.map {|block| source.instance_exec(*args, &block) }
-          break if type == Object || @hooks[type]
+          result += hooks[type].to_a.map {|method| method.bind(source).call(*args) }
+          break if type == Object || hooks[type]
           type = type.superclass rescue nil
         end
         result

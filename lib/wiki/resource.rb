@@ -4,6 +4,7 @@ require 'wiki/utils'
 require 'wiki/extensions'
 require 'wiki/config'
 require 'mimemagic'
+require 'yaml'
 
 module Wiki
   PATH_PATTERN = '[\w:.+\-_\/](?:[\w:.+\-_\/ ]*[\w.+\-_\/])?'
@@ -27,11 +28,10 @@ module Wiki
       forbid_invalid_path(path)
       commit = sha ? repo.gcommit(sha) : repo.log(1).path(path).first rescue nil
       return nil if !commit
-      object = git_find(path, commit)
-      return nil if !object
-      return Page.new(repo, path, object, commit, !sha) if object.blob?
-      return Tree.new(repo, path, object, commit, !sha) if object.tree?
-      nil
+      object = find_object(path, commit)
+      object && (self != Resource ? valid_object?(object) && new(repo, path, object, commit, !sha) :
+                 object.blob? && Page.new(repo, path, object, commit, !sha) ||
+                 object.tree? && Tree.new(repo, path, object, commit, !sha)) || nil
     end
 
     # Find resource but raise not found exceptions
@@ -48,12 +48,22 @@ module Wiki
       @object = object
       @commit = commit
       @current = current
+      reload
+    end
+
+    # Reload cached data
+    def reload
       @prev_commit = @latest_commit = @history = nil
     end
 
     # Newly created resource, not yet in repository
     def new?
       !@object
+    end
+
+    # Modified resource, not yet saved
+    def modified?
+      new?
     end
 
     # Resource sha
@@ -68,7 +78,7 @@ module Wiki
 
     # Latest commit of this resource
     def latest_commit
-      update_prev_latest_commit
+      init_commits
       @latest_commit
     end
 
@@ -80,14 +90,14 @@ module Wiki
 
     # Previous commit this resource was changed
     def prev_commit
-      update_prev_latest_commit
+      init_commits
       @prev_commit
     end
 
     # Next commit was changed
     def next_commit
       h = history
-      h.each_index { |i| return (i == 0 ? nil : h[i - 1]) if h[i].date <= @commit.date }
+      h.each_index { |i| return (i != 0 && h[i - 1]) if h[i].date <= @commit.date }
       h.last # FIXME. Does not work correctly if history is too short
     end
 
@@ -97,12 +107,11 @@ module Wiki
 
     # Resource name
     def name
-      return $1 if path =~ /\/([^\/]+)$/
-      path
+      path =~ %r{/?([^/]+)$} ? $1 : path
     end
 
-    # Pretty formatted resource name
-    def pretty_name
+    # Page title
+    def title
       name.gsub(/\.([^.]+)$/, '')
     end
 
@@ -120,7 +129,7 @@ module Wiki
 
     protected
 
-    def update_prev_latest_commit
+    def init_commits
       if !@latest_commit
         commits = @repo.log(2).object(@commit.sha).path(@path).to_a
         @prev_commit = commits[1]
@@ -132,7 +141,7 @@ module Wiki
       forbid(:invalid_path.t => (!path.blank? && path !~ /^#{PATH_PATTERN}$/))
     end
 
-    def self.git_find(path, commit)
+    def self.find_object(path, commit)
       return nil if !commit
       if path.blank?
         commit.gtree rescue nil
@@ -146,20 +155,19 @@ module Wiki
 
   # Page resource in repository
   class Page < Resource
-    def initialize(repo, path, object = nil, commit = nil, current = nil)
-      super
-      @content = nil
+    def self.valid_object?(object)
+      object.blob?
     end
 
-    # Find page by path and commit sha
-    def self.find(repo, path, sha = nil)
-      resource = super
-      resource && resource.page? ? resource : nil
+    # Reload cached data
+    def reload
+      super
+      @content = @metadata = nil
     end
 
     # Set page content for preview
     def content=(content)
-      @mime = nil
+      @mime = @metadata = nil
       @content = content
     end
 
@@ -170,8 +178,8 @@ module Wiki
     end
 
     # Check if there is no unsaved content
-    def saved?
-      !new? && !@content
+    def modified?
+      new? || @content
     end
 
     # Write page and commit
@@ -197,9 +205,9 @@ module Wiki
       repo.add(@path)
       repo.commit(message, :author => author)
 
-      @content = @prev_commit = @latest_commit = @history = nil
+      reload
       @commit = history.first
-      @object = Resource.git_find(@path, @commit) || raise(NotFound, path)
+      @object = Resource.find_object(@path, @commit) || raise(NotFound, path)
       @current = true
     end
 
@@ -215,20 +223,33 @@ module Wiki
         (Config.mime.magic && MimeMagic.by_magic(content)) ||
         MimeMagic.new(Config.mime.default)
     end
+
+    # Get metadata
+    def metadata
+      @metadata ||= if mime.text? && content =~ /^---\r?\n/
+        hash = YAML.load(content + "\n") rescue nil
+        Hash === hash && hash.with_indifferent_access
+      end ||
+      if path !~ /metadata$/
+        page = Page.find(@repo, path + '.metadata')
+        page ? page.metadata : {}
+      end ||
+      {}
+    end
   end
 
   # Tree resource in repository
   class Tree < Resource
-    def initialize(repo, path, object = nil, commit = nil, current = false)
-      super
-      @trees = nil
-      @pages = nil
+    DIRECTORY_MIME = MimeMagic.new('inode/directory')
+
+    def self.valid_object?(object)
+      object.tree?
     end
 
-    # Find tree by path and optional commit sha
-    def self.find(repo, path, sha = nil)
-      resource = super
-      resource && resource.tree? ? resource : nil
+    # Reload cached data
+    def reload
+      super
+      @pages = @trees = @metadata = nil
     end
 
     # Get child pages
@@ -246,14 +267,27 @@ module Wiki
       trees + pages
     end
 
-    # Pretty name
-    def pretty_name
-      :root_path.t/path
+    # Tree title
+    def title
+      path.blank? ? :root_path.t : name
     end
 
     # Get archive of current tree
     def archive
       @repo.archive(sha, nil, :format => 'tgz', :prefix => "#{safe_name}/")
+    end
+
+    # Directory mime type
+    def mime
+      DIRECTORY_MIME
+    end
+
+    # Get metadata
+    def metadata
+      @metadata ||= begin
+                      page = Page.find(@repo, path/'metadata')
+                      page ? page.metadata : {}
+                    end
     end
   end
 end

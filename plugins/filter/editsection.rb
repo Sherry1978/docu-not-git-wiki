@@ -1,5 +1,8 @@
+author       'Daniel Mendler'
+description  'Adds links for section editing for creole'
+
 Filter.create :editsection do |content|
-  if !context.page.saved? || !context.page.current?
+  if context.page.modified? || !context.page.current?
     subfilter(content)
   else
     prefix = "EDIT_#{Thread.current.object_id.abs.to_s(36)}_"

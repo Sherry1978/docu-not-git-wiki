@@ -1,5 +1,7 @@
-depends_on 'engine/filter'
-require 'creole'
+author       'Daniel Mendler'
+description  'Creole wiki text filter'
+dependencies 'engine/filter'
+require      'creole'
 
 class CreoleParser < Creole::CreoleParser
   include Helper
@@ -18,7 +20,7 @@ class CreoleParser < Creole::CreoleParser
     image_path, page_path = path, path
     if !args.delete('raw')
       geometry = args.find { |x| x =~ /(\d+x)|(x\d+)|(\d+%)/}
-      opts = {:path => path, :output => :image}
+      opts = {:path => path, :output => 'image'}
       if geometry
         args.delete(geometry)
         opts[:geometry] = geometry

@@ -1,16 +1,8 @@
-require 'rack'
+require 'rack/patched_request'
 require 'wiki/utils'
 
 module Wiki
   module Routing
-    class Request < Rack::Request
-      def params
-        self.GET.update(self.POST)
-      rescue EOFError => ex
-        self.GET
-      end
-    end
-
     class NotFound < NameError
       def status; 404 end
     end
@@ -32,7 +24,7 @@ module Wiki
 
       def call!(env)
         @env      = env
-        @request  = Request.new(env)
+        @request  = Rack::Request.new(env)
         @response = Rack::Response.new
         @params = @original_params = @request.params.with_indifferent_access
         catch(:forward) do
@@ -123,12 +115,8 @@ module Wiki
               end
             @params = @original_params.merge(params)
             catch(:pass) do
-              begin
-                invoke_hook(:before_action, name)
-                result = method.arity == 0 ? method.bind(self).call : method.bind(self).call(*values)
-                halt(result)
-              ensure
-                invoke_hook(:after_action, name)
+              invoke_hook(:action, @request.request_method.downcase.to_sym, name) do
+                halt(method.arity == 0 ? method.bind(self).call : method.bind(self).call(*values))
               end
             end
           end
@@ -149,7 +137,7 @@ module Wiki
     end
 
     module ClassMethods
-      attr_reader_with_default :routes => {}
+      lazy_reader :routes, {}
 
       def patterns(patterns = nil)
         @patterns ||= Hash.with_indifferent_access
@@ -157,15 +145,11 @@ module Wiki
         @patterns.merge!(patterns)
       end
 
-      def get(*paths, &block)
-        add_route 'GET', paths, &block
-        add_route 'HEAD', paths, &block
-      end
-
-      def put(*paths, &block);    add_route 'PUT',    paths, &block end
-      def post(*paths, &block);   add_route 'POST',   paths, &block end
-      def delete(*paths, &block); add_route 'DELETE', paths, &block end
-      def head(*paths, &block);   add_route 'HEAD',   paths, &block end
+      def get(*paths, &block);    add_route(['GET', 'HEAD'], paths, &block) end
+      def put(*paths, &block);    add_route('PUT',    paths, &block) end
+      def post(*paths, &block);   add_route('POST',   paths, &block) end
+      def delete(*paths, &block); add_route('DELETE', paths, &block) end
+      def head(*paths, &block);   add_route('HEAD',   paths, &block) end
 
       def dump_routes
         s = "=== ROUTES ===\n"
@@ -183,8 +167,7 @@ module Wiki
         if path.respond_to? :to_str
           pattern =
             Regexp.escape(path).gsub(/:(\w+)|\\\?/) do |match|
-            case match
-            when '\?'
+            if match == '\?'
               '?'
             else
               keys << $1
@@ -199,14 +182,15 @@ module Wiki
         end
       end
 
-      def add_route(method, paths, opts={}, &block)
+      def add_route(methods, paths, opts={}, &block)
         opts = paths.last.is_a?(Hash) ? paths.pop : {}
         paths.each do |path|
           patterns = opts[:patterns] ? self.patterns.merge(opts[:patterns]) : self.patterns
           path, pattern, keys = compile_route(path, patterns)
-          define_method "#{method} #{path}", &block
-          routes[method] ||= []
-          (routes[method] << [path, pattern, keys, instance_method("#{method} #{path}")]).last
+          [methods].flatten.each do |m|
+            ((routes[m] ||= []) << [path, pattern, keys, block.to_method(self)]).last
+            routes[m].uniq!
+          end
         end
       end
 

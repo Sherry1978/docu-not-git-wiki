@@ -1,7 +1,6 @@
-- title :new_page.t(:page => @resource.pretty_name)
-- menu :new
+- title :new_page.t(:page => @resource.title)
 = render_block(:edit_form) do
-  .ui-tabs
+  .tabs
     %ul
       %li{tab_selected(:new)}
         %a{:href=>'#tab-text'}= :text.t
