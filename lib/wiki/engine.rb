@@ -56,13 +56,18 @@ module Wiki
       @engines[engine.name] = engine
     end
 
+    # Find all accepting engines
+    def self.find_all(resource)
+      @engines.values.find_all { |e| e.accepts? resource }.sort_by {|a| a.name }
+    end
+
     # Find appropiate engine for resource. An optional
     # name can be given to claim a specific engine.
     def self.find(resource, name = nil)
       name ||= resource.metadata[:engine]
 
       engine = if !name
-        @engines.values.sort {|a,b| a.priority <=> b.priority }.find { |e| e.accepts? resource }
+        @engines.values.sort_by {|a| a.priority }.find { |e| e.accepts? resource }
       else
         e = @engines[name.to_s]
         e if e && e.accepts?(resource)
