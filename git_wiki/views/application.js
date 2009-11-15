@@ -65,8 +65,12 @@
         }
       });
 
+    var saving = false;
+    save_button.click(function(){
+      saving = true;
+    });
     window.onbeforeunload = function(){
-      return pageHasChanges() ? "You have unsaved changes." : undefined;
+      return (!saving && pageHasChanges()) ? "You have unsaved changes." : undefined;
     };
   }
 
