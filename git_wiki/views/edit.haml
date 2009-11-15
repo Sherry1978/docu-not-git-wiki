@@ -1,5 +1,5 @@
 - @page_class << "edit"
-- @title = "editing \"#{@page.name}\""
+- @title = "editing: #{@page.name.gsub('/',' &rarr; ')}"
 %form#edit{:method => 'POST', :action => "/#{@page}"}
   #editor
     #preview

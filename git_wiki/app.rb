@@ -11,7 +11,6 @@ module GitWiki
 
     before do
       content_type "text/html", :charset => "utf-8"
-      puts params.inspect
       @page_class = [];
     end
 
@@ -43,7 +42,6 @@ module GitWiki
 
     get "/*" do
       path = params[:splat].join('/')
-      puts "opening page #{path}"
       if not params[:edit].nil?
         @page = Page.find_or_create(path)
         haml :edit

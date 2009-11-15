@@ -2,7 +2,25 @@ module GitWiki
   class Page
     def self.find_all
       return [] if repository.tree.contents.empty?
-      repository.tree.contents.collect { |blob| new(blob) }
+
+      all_blobs = collect_blobs_from_tree(repository.tree)
+
+      all_blobs.flatten.collect do |blob|
+        new(blob)
+      end
+    end
+
+    def self.collect_blobs_from_tree(tree, path=nil)
+      path = (path.nil? || tree.name.nil?) ? '' : path+'/'+tree.name
+      tree.contents.inject([]) do |blobs, file|
+        if file.is_a? Grit::Blob
+          add_path_to_blob(file, path+'/'+file.name)
+          blobs.push file
+        elsif file.is_a? Grit::Tree
+          blobs.concat collect_blobs_from_tree(file, path)
+        end
+        blobs
+      end
     end
 
     def self.find(name)
@@ -33,15 +51,32 @@ module GitWiki
     end
 
     def self.find_blob(page_name)
-      repository.tree/(page_name + extension)
+      blob = repository.tree/(page_name + extension)
+      add_path_to_blob(blob, page_name + extension)  if blob
+      blob
     end
     private_class_method :find_blob
 
+    def self.add_path_to_blob(blob, path)
+      blob.instance_eval do
+        def path
+          @path
+        end
+        def path=(new_path)
+          @path = new_path
+        end
+      end
+      blob.path = path
+    end
+    private_class_method :add_path_to_blob
+
     def self.create_blob_for(page_name)
-      Grit::Blob.create(repository, {
+      blob = Grit::Blob.create(repository, {
         :name => page_name + extension,
         :data => ""
       })
+      add_path_to_blob(blob, page_name + extension)  if blob
+      blob
     end
     private_class_method :create_blob_for
 
@@ -62,6 +97,10 @@ module GitWiki
     end
 
     def name
+      @blob.path.gsub(/#{File.extname(@blob.name)}$/, '').gsub(/^\//,'')
+    end
+
+    def short_name
       @blob.name.gsub(/#{File.extname(@blob.name)}$/, '')
     end
 
@@ -71,7 +110,6 @@ module GitWiki
 
     def update_content(new_content)
       return if new_content == content
-      puts "update content for #{file_name}"
       system("mkdir -p '#{File.dirname(file_name)}'");
       File.open(file_name, "w") { |f| f << new_content }
       add_to_index_and_commit!
@@ -80,7 +118,7 @@ module GitWiki
     private
       def add_to_index_and_commit!
         Dir.chdir(self.class.repository.working_dir) {
-          self.class.repository.add(@blob.name)
+          self.class.repository.add(@blob.path)
         }
         self.class.repository.commit_index(commit_message)
       end
