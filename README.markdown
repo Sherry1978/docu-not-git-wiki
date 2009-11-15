@@ -1,3 +1,21 @@
+# git-wiki fork:
+
+## added features
+- nested pages
+- double click page to edit
+- instant preview while editing
+- save and continue editing
+
+## notable changes
+- /pagename/edit is not /pagename?edit=1
+
+## plans
+- deleting pages
+- restoring deleted pages
+- moving pages
+- shared sub-wiki's using submodules
+- log / history / diff view
+
 git-wiki: because who needs cool names when you use git?
 ========================================================
 
