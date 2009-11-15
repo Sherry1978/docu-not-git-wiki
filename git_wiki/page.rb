@@ -71,6 +71,8 @@ module GitWiki
 
     def update_content(new_content)
       return if new_content == content
+      puts "update content for #{file_name}"
+      system("mkdir -p '#{File.dirname(file_name)}'");
       File.open(file_name, "w") { |f| f << new_content }
       add_to_index_and_commit!
     end

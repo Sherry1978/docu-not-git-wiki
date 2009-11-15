@@ -41,18 +41,21 @@ module GitWiki
       haml :list
     end
 
-    get "/:page" do
+    get "/*" do
+      path = params[:splat].join('/')
+      puts "opening page #{path}"
       if not params[:edit].nil?
-        @page = Page.find_or_create(params[:page])
+        @page = Page.find_or_create(path)
         haml :edit
       else
-        @page = Page.find(params[:page])
+        @page = Page.find(path)
         haml :show
       end
     end
 
-    post "/:page" do
-      @page = Page.find_or_create(params[:page])
+    post "/*" do
+      path = params[:splat].join('/')
+      @page = Page.find_or_create(path)
       @page.update_content(params[:body])
       redirect "/#{@page}"
     end
