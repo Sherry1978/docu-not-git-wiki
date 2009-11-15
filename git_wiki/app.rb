@@ -20,7 +20,7 @@ module GitWiki
       content_type "text/css; charset=utf-8", :charset => "utf-8"
       sass :"application"
     end
-    
+
     post "/preview" do
       RDiscount.new(params[:body]).to_html
     end

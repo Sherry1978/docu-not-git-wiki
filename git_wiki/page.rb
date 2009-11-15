@@ -101,7 +101,16 @@ module GitWiki
     end
 
     def short_name
-      @blob.name.gsub(/#{File.extname(@blob.name)}$/, '')
+      File.basename(@blob.name).gsub(/#{File.extname(@blob.name)}$/, '')
+    end
+
+    def parent_directories
+      File.dirname(name).split(/\//).inject([[],[]]){ |collection, dirname|
+        parents, paths = collection
+        parents.push(dirname)
+        paths.push(parents.join('/'))
+        [parents, paths]
+      }[1]
     end
 
     def content

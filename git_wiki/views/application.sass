@@ -66,13 +66,13 @@ body
     !content_right  = 10px
     !content_bottom = 5px
     !content_left   = 10px
-    
+
 
 
     #header
       height= !nav_height
       padding-top= !nav_padding_top
-      
+
     #footer
       height= 1px
 
@@ -89,11 +89,15 @@ body
       font-size: 90%
       padding-right: 1em
       padding-left: 1em
+      &, a
+        color: #999
+      a:hover
+        text-decoration: underline
       li
         display: inline
         margin-right: 0.5em
-        a
-          color: #999
+
+
       &.left
         left: 0
       &.right
@@ -163,11 +167,11 @@ body
 
   p
     margin: 0.5em 0
-    
+
   ul
     list-style-type: disc
     list-style-position: inside
-  
+
 
 
 

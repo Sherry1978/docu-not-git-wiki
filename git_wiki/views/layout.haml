@@ -14,6 +14,11 @@
             %a{ :href => "/#{GitWiki.homepage}" } home
           %li
             %a{ :href => "/pages" } all
+          - if @page && @page.name.match(/\//)
+            %li
+              - @page.parent_directories.each do |path|
+                %a.directory{:href => '/'+path}= File.basename(path)
+                &rarr;
         %ul.nav.right
           - if @page
             %li.edit_page
