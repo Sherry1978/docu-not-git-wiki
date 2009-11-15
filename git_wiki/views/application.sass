@@ -47,9 +47,12 @@ a, a:hover
 body,html
   height: 100%
   width: 100%
-
+  font-family: 'Trebuchet MS', Trebuchet
+  font-size: 14px
+  
 body
   background: black
+
 
   #page
     display: block
@@ -86,11 +89,8 @@ body
     .nav
       position: absolute
       top= !nav_padding_top
-      font-size: 90%
       padding-right: 1em
       padding-left: 1em
-      &, a
-        color: #999
       a:hover
         text-decoration: underline
       li
@@ -104,10 +104,14 @@ body
         right: 0
         &.edit_page
           float: right
+    
+    .nav, #controls
+      &, a, a:focus, a:visited, a:active
+        color: #999
+        font-size: 90%
 
     #content, #preview, #editor textarea
       padding: 2em
-      color: #E9E9E9
 
     &.edit
       .nav .edit_page
@@ -119,10 +123,6 @@ body
           right: 0
           bottom: 0
           left: 0
-          // top    = !content_top + !nav_height + !nav_padding_top
-          // right  = !content_right
-          // bottom = !content_bottom
-          // left   = !content_left
           textarea
             position: absolute
             top: 50%
@@ -131,7 +131,7 @@ body
             right: 0
             border: none
             color: black
-            background: #F9F9F9
+            background: #B2B2B2
           #preview
             position: absolute
             top: 0
@@ -149,15 +149,21 @@ body
 
 
 #content, #preview
+  color: #7F7F7F
 
+  strong
+    color: white
+    
+  em
+    font-style: italic
 
-  strong, h1, h2, h3
+  h1, h2, h3
     font-weight: bold
     color: #D5FB6F
 
   h1, h2, h3
     position: relative
-    left: -0.25em
+    left: -0.5em
   h1
     font-size: 130%
   h2
@@ -169,8 +175,9 @@ body
     margin: 0.5em 0
 
   ul
-    list-style-type: disc
-    list-style-position: inside
+    // padding-left: 0.5em
+    // list-style-type: disc
+    // list-style-position: inside
 
 
 
