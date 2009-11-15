@@ -40,12 +40,11 @@ abbr, acronym
 
 
 // global
-!orange_text = #FF6633
-!blue_text = #89BDFF
-!brown_text = #9B5C2E
-!green_text = #3B8520
-// #6AA847
-!yellow_text = #D5FB6F
+!orange = #FF6633
+!blue = #89BDFF
+!brown = #9B5C2E
+!green = #3B8520
+!yellow = #D5FB6F
 
 a, a:hover
   text-decoration: none
@@ -83,6 +82,23 @@ body
       height= !nav_height
       padding-top= !nav_padding_top
 
+    #flash
+      position: absolute
+      top: 40px
+      left: 0
+      right: 0
+      text-align: center
+      color= !orange
+      .message
+        display: none
+        background-color= !orange
+        color: black
+        font-weight: bold
+        -moz-border-radius: 5px
+        -webkit-border-radius: 5px
+        padding: 3px 5px
+      
+
     #footer
       height= 1px
 
@@ -91,7 +107,7 @@ body
       top= !nav_padding_top / 2 * -1
       text-align: center
       font-size: 120%
-      color= !yellow_text
+      color= !yellow
 
     .nav
       position: absolute
@@ -163,18 +179,18 @@ body
 
   strong
     color: white
-    color= !yellow_text
+    color= !yellow
     
   em
     font-style: italic
     
   a, a:focus, a:visited, a:active
-    color= !orange_text
+    color= !orange
 
   h1, h2, h3, h4, h4
     font-weight: bold
     color: #D5FB6F
-    color= !yellow_text
+    color= !yellow
     margin-bottom: 0.5em
 
   h1, h2, h3

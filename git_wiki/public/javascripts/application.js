@@ -1,4 +1,13 @@
 (function($) {
+  
+  var flash_timeout;
+  function flash(message){
+    clearTimeout(flash_timeout);
+    $('#flash .message').html(message).show('highlight');
+    flash_timeout = setTimeout(function(){
+      $('#flash .message').hide();
+    },5000);
+  }
 
   function initaliseShowPage(){
     function edit(){
@@ -39,7 +48,7 @@
       $.post($('form#edit').attr('action'), {body:textarea.val()});
       saved_value = textarea.val();
       save_button.attr('disabled',true);
-      console.log('SAVED');
+      flash('SAVED');
     }
 
     function saveAndClose(){

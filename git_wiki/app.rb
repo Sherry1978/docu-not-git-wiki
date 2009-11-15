@@ -16,7 +16,7 @@ module GitWiki
       @page_class = [];
     end
 
-    get "/application.css" do
+    get "/stylesheets/application.css" do
       content_type "text/css; charset=utf-8", :charset => "utf-8"
       sass :"application"
     end
