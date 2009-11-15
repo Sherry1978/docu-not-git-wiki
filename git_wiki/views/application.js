@@ -50,7 +50,7 @@
         updatePreview();
       }else{
         save_button.attr('disabled',true);
-      }Ω
+      }
     });
 
     $(window)
