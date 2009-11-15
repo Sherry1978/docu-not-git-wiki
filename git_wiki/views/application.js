@@ -30,6 +30,8 @@
     
     function save(){
       $.post($('form#edit').attr('action'), {body:textarea.val()});
+      saved_value = textarea.val();
+      save_button.attr('disabled',true);
       console.log('SAVED');
     }
     
