@@ -1,0 +1,146 @@
+// reset
+body, div, dl, dt, dd, ul, ol, li, h1, h2, h3, h4, h5, h6, pre, form, fieldset, input, textarea, p, blockquote, th, td
+  margin: 0
+  padding: 0
+
+table
+  border-collapse: collapse
+  border-spacing: 0
+
+
+fieldset, img
+  border: 0
+
+
+address, caption, cite, code, dfn, em, strong, th, var
+  font-style: normal
+  font-weight: normal
+
+
+ol, ul
+  list-style: none
+
+
+caption, th
+  text-align: left
+
+
+h1, h2, h3, h4, h5, h6
+  font-size: 100%
+  font-weight: normal
+
+
+q
+  &:before, &:after
+    content: ''
+
+
+abbr, acronym
+  border: 0
+
+
+// global
+a, a:hover
+  text-decoration: none
+
+strong, h1, h2, h3
+  font-weight: bold
+
+h1
+  font-size: 130%
+  text-align: center
+h2
+  font-size: 120%
+h2
+  font-size: 110%
+
+p
+  margin: 0.25em
+
+
+// main
+body,html
+  height: 100%
+  width: 100%
+
+body
+  background: grey
+
+  #page
+    display: block
+    position: relative
+    margin: 0 auto
+    width: 900px
+    background: lightgrey
+    min-height: 100%
+
+    !nav_height = 30px
+    !nav_padding_top = 5px
+
+    !content_top    = 5px
+    !content_right  = 10px
+    !content_bottom = 5px
+    !content_left   = 10px
+    
+
+
+    #header
+      height= !nav_height
+      padding-top= !nav_padding_top
+      
+    #footer
+      height= 1px
+
+    #title
+      z-index: 0
+      text-align: center
+
+
+    .nav
+      position: absolute
+      top= !nav_padding_top
+      font-size: 90%
+      padding-right: 1em
+      padding-left: 1em
+      li
+        display: inline
+      &.left
+        left: 0
+      &.right
+        right: 0
+        &.edit_page
+          float: right
+        
+
+
+    #content
+      margin= !content_top !content_right !content_bottom !content_left
+
+    &.edit
+      #nav .edit_page
+        display: none
+      #content
+        textarea
+          position: absolute
+          top    = !content_top + !nav_height + !nav_padding_top
+          right  = !content_right
+          bottom = !content_bottom
+          left   = !content_left
+      #controls
+        z-index: 2
+        position: absolute
+        top= !nav_padding_top
+        right= !content_right
+
+
+
+
+
+
+
+
+
+
+
+
+
