@@ -10,13 +10,13 @@
         #title= @title
         %ul.nav.left
           %li
-            %a{ :href => "/#{GitWiki.homepage}" } Home
+            %a{ :href => "/#{GitWiki.homepage}" } home
           %li
-            %a{ :href => "/pages" } All pages
+            %a{ :href => "/pages" } all
         %ul.nav.right
           - if @page
             %li.edit_page
-              %a{:href => "/#{@page}?edit=1"} Edit this page
+              %a{:href => "/#{@page}?edit=1"} edit
 
       #content= yield
       #footer

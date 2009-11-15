@@ -49,14 +49,14 @@ body,html
   width: 100%
 
 body
-  background: grey
+  background: black
 
   #page
     display: block
     position: relative
     margin: 0 auto
     width: 900px
-    background: lightgrey
+    background: #181818
     min-height: 100%
 
     !nav_height = 30px
@@ -81,6 +81,7 @@ body
       top= !nav_padding_top / 2 * -1
       text-align: center
       font-size: 120%
+      color: #D5FB6F
 
     .nav
       position: absolute
@@ -91,6 +92,8 @@ body
       li
         display: inline
         margin-right: 0.5em
+        a
+          color: #999
       &.left
         left: 0
       &.right
@@ -98,8 +101,9 @@ body
         &.edit_page
           float: right
 
-    #content
-      margin= !content_top !content_right !content_bottom !content_left
+    #content, #preview, #editor textarea
+      padding: 2em
+      color: #E9E9E9
 
     &.edit
       .nav .edit_page
@@ -107,10 +111,14 @@ body
       #content
         #editor
           position: absolute
-          top    = !content_top + !nav_height + !nav_padding_top
-          right  = !content_right
-          bottom = !content_bottom
-          left   = !content_left
+          top= !nav_height + !nav_padding_top
+          right: 0
+          bottom: 0
+          left: 0
+          // top    = !content_top + !nav_height + !nav_padding_top
+          // right  = !content_right
+          // bottom = !content_bottom
+          // left   = !content_left
           textarea
             position: absolute
             top: 50%
@@ -118,6 +126,8 @@ body
             bottom: 0
             right: 0
             border: none
+            color: black
+            background: #F9F9F9
           #preview
             position: absolute
             top: 0
@@ -125,6 +135,7 @@ body
             bottom: 50%
             right: 0
             overflow: auto
+
       #controls
         z-index: 2
         position: absolute
@@ -134,9 +145,15 @@ body
 
 
 #content, #preview
+
+
   strong, h1, h2, h3
     font-weight: bold
+    color: #D5FB6F
 
+  h1, h2, h3
+    position: relative
+    left: -0.25em
   h1
     font-size: 130%
   h2
@@ -145,7 +162,11 @@ body
     font-size: 110%
 
   p
-    margin: 0.25em
+    margin: 0.5em 0
+    
+  ul
+    list-style-type: disc
+    list-style-position: inside
   
 
 
