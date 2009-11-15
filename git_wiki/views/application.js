@@ -4,14 +4,14 @@
     function edit(){
       window.location.pathname = window.location.pathname+'/edit';
     }
-    $("#content").bind("dblclick", edit);
-    
-    $(window).keydown(function(event){
-      if (event.keyCode == 69 && event.metaKey){
-        edit();
-        return false;
-      }
-    });
+    $(window)
+      .bind("dblclick", edit)
+      .keydown(function(event){
+        if (event.keyCode == 69 && event.metaKey){
+          edit();
+          return false;
+        }
+      });
   }
   
   function initaliseEditPage(){

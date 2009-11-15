@@ -1,3 +1,5 @@
+- @page_class << "edit"
+- @title = "editing \"#{@page.name}\""
 %form#edit{:method => 'POST', :action => "/#{@page}"}
   #editor
     #preview
