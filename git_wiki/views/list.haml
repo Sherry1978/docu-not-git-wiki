@@ -4,4 +4,8 @@
   - else
     %ul#list
       - @pages.each do |page|
-        %li= list_item(page)
+        %li
+          %small
+            %a.page{:href => "/#{page}?edit=1"} edit
+            /%a.page{:href => "/#{page}?delete=1"} delete
+          %a.page{:href => "/#{page}"}= page.name

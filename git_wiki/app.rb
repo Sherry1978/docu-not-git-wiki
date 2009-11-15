@@ -52,14 +52,5 @@ module GitWiki
       redirect "/#{@page}"
     end
 
-    private
-      def title(title=nil)
-        @title = title.to_s unless title.nil?
-        @title
-      end
-
-      def list_item(page)
-        %Q{<a class="page_name" href="/#{page}">#{page.name}</a>}
-      end
   end
 end
