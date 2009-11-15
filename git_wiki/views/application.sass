@@ -95,7 +95,6 @@ body
       top= !nav_padding_top / 2 * -1
       text-align: center
 
-
     .nav
       position: absolute
       top= !nav_padding_top
@@ -111,8 +110,6 @@ body
         right: 0
         &.edit_page
           float: right
-        
-
 
     #content
       margin= !content_top !content_right !content_bottom !content_left
@@ -129,17 +126,18 @@ body
           left   = !content_left
           textarea
             position: absolute
-            top: 0
-            left: 0
-            bottom: 50%
-            right: 0
-          #preview
-            position: absolute
             top: 50%
             left: 0
             bottom: 0
             right: 0
-            border: 1px dotted black
+            border: none
+          #preview
+            position: absolute
+            top: 0
+            left: 0
+            bottom: 50%
+            right: 0
+            overflow: auto
       #controls
         z-index: 2
         position: absolute

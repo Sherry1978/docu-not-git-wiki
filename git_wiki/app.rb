@@ -15,9 +15,21 @@ module GitWiki
       @page_class = [];
     end
 
-    get '/application.css' do
+    get "/application.css" do
       content_type "text/css; charset=utf-8", :charset => "utf-8"
       sass :"application"
+    end
+    
+    get "/application.js" do
+      content_type "text/css; charset=utf-8", :charset => "utf-8"
+      <<-JS
+        #{File.open(options.views+"/jquery-1.3.2.min.js").read}
+        #{File.open(options.views+"/application.js").read}
+      JS
+    end
+    
+    post "/preview" do
+      RDiscount.new(params[:body]).to_html
     end
 
     get "/" do
@@ -40,6 +52,7 @@ module GitWiki
 
     get "/:page" do
       @page = Page.find(params[:page])
+      @page_class << 'show'
       @title = @page.name
       haml :show
     end

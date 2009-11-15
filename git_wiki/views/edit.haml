@@ -1,11 +1,9 @@
-%form{:method => 'POST', :action => "/#{@page}"}
+%form#edit{:method => 'POST', :action => "/#{@page}"}
   #editor
-    %textarea{:name => 'body'}= @page.content
-
     #preview
-      hit 
+      ~"#{@page.to_html}"
+    %textarea{:name => 'body'}= @page.content
 
   #controls
     %a.cancel{:href=>"/#{@page}"} cancel
-    %input.submit{:type => :button, :value => "Preview"}
-    %input.submit{:type => :submit, :value => "Save"}
+    %input.save{:type => :submit, :value => "Save", :disabled => true}
