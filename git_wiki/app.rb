@@ -11,6 +11,7 @@ module GitWiki
 
     before do
       content_type "text/html", :charset => "utf-8"
+      puts params.inspect
       @page_class = [];
     end
 
