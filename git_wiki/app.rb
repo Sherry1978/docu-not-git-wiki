@@ -1,5 +1,7 @@
 module GitWiki
   class App < Sinatra::Base
+    enable :static
+    set :public, Proc.new { File.join(root, "public") }
     set :app_file, __FILE__
     set :haml, { :format        => :html5,
                  :attr_wrapper  => '"'     }
@@ -17,14 +19,6 @@ module GitWiki
     get "/application.css" do
       content_type "text/css; charset=utf-8", :charset => "utf-8"
       sass :"application"
-    end
-    
-    get "/application.js" do
-      content_type "text/css; charset=utf-8", :charset => "utf-8"
-      <<-JS
-        #{File.open(options.views+"/jquery-1.3.2.min.js").read}
-        #{File.open(options.views+"/application.js").read}
-      JS
     end
     
     post "/preview" do
