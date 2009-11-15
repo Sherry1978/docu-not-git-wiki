@@ -3,7 +3,6 @@
 %form#edit{:method => 'POST', :action => "/#{@page}"}
   #editor
     #preview
-      ~"#{@page.to_html}"
     %textarea{:name => 'body'}= @page.content
 
   #controls

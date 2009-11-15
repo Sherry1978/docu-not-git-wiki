@@ -24,9 +24,12 @@
 
     function updatePreview(){
       $.post("/preview", { 'body': textarea.val() }, function(a,b){
+        a = a.replace(/<script.*\/script>/g,'<img src="/images/script_icon.gif"/>');
         preview.html(a);
       });
     }
+
+    updatePreview();
 
     function pageHasChanges(){
       return saved_value !== textarea.val();
