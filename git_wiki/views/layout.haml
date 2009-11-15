@@ -16,7 +16,7 @@
         %ul.nav.right
           - if @page
             %li.edit_page
-              %a{:href => "/#{@page}/edit"} Edit this page
+              %a{:href => "/#{@page}?edit=1"} Edit this page
 
       #content= yield
       #footer

@@ -2,7 +2,7 @@
 
   function initaliseShowPage(){
     function edit(){
-      window.location.pathname = window.location.pathname+'/edit';
+      window.location.search = '?edit=1';
     }
     $(window)
       .bind("dblclick", edit)

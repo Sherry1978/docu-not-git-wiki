@@ -6,7 +6,7 @@ module GitWiki
 
     error PageNotFound do
       page = request.env["sinatra.error"].name
-      redirect "/#{page}/edit"
+      redirect "/#{page}?edit=1"
     end
 
     before do
@@ -41,14 +41,14 @@ module GitWiki
       haml :list
     end
 
-    get "/:page/edit" do
-      @page = Page.find_or_create(params[:page])
-      haml :edit
-    end
-
     get "/:page" do
-      @page = Page.find(params[:page])
-      haml :show
+      if not params[:edit].nil?
+        @page = Page.find_or_create(params[:page])
+        haml :edit
+      else
+        @page = Page.find(params[:page])
+        haml :show
+      end
     end
 
     post "/:page" do
