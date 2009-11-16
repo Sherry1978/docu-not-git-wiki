@@ -9,7 +9,7 @@
 ## notable changes
 - /pagename/edit is not /pagename?edit=1
 
-## plans
+## future features
 - deleting pages
 - restoring deleted pages
 - moving pages
