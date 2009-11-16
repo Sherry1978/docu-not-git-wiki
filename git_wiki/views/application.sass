@@ -55,7 +55,7 @@ body,html
   width: 100%
   font-family: 'Trebuchet MS', Trebuchet
   font-size: 14px
-  
+
 body
   background: black
 
@@ -97,7 +97,7 @@ body
         -moz-border-radius: 5px
         -webkit-border-radius: 5px
         padding: 3px 5px
-      
+
 
     #footer
       height= 1px
@@ -127,7 +127,7 @@ body
         right: 0
         &.edit_page
           float: right
-    
+
     .nav, #controls
       &, a, a:focus, a:visited, a:active
         color: #999
@@ -175,15 +175,16 @@ body
   color: #7F7F7F
 
   small
+    font-size: 65%
     font-weight: 100
 
   strong
     color: white
     color= !yellow
-    
+
   em
     font-style: italic
-    
+
   a, a:focus, a:visited, a:active
     color= !orange
 
@@ -196,7 +197,7 @@ body
   h1, h2, h3
     position: relative
     left: -0.5em
-  
+
   h1,h2,h3,h4,h5
     &:first-child
       margin-top: 0
@@ -213,12 +214,17 @@ body
   p
     margin: 0.5em 0
 
+  ul,ol
+    list-style-position: inside
+    ul,ol
+      margin-left: 1em
+
   ul
     list-style-image: url("/images/list-bullet.gif")
-    list-style-position: inside
-    ul
-      margin-left: 1em
-    
+
+  ol
+    list-style-type: decimal
+
   pre
     padding: 0.5em
     overflow: auto
