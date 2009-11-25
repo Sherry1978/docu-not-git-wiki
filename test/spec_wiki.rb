@@ -34,7 +34,15 @@ describe 'wiki' do
         :magic => true,
       },
       :main_page    => 'Home',
-      :disabled_plugins => ['misc/private_wiki'],
+      :disabled_plugins => [
+        'authorization/private_wiki',
+        'tagging',
+        'filter/orgmode',
+        'tag/math-ritex',
+        'tag/math-itex2mml',
+        # 'tag/math-imaginator',
+      ],
+      :disabled_plugins => ['authorization/private_wiki'],
       :production => false,
       :rack => {
         :rewrite_base => nil,

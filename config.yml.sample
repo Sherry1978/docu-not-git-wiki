@@ -8,9 +8,12 @@ mime:
   default: 'text/x-creole'
 main_page:    'Home'
 disabled_plugins:
-  - misc/private_wiki
+  - authorization/private_wiki
   - filter/orgmode
   - tagging
+  - tag/math-ritex
+  - tag/math-itex2mml
+#  - tag/math-imaginator
 rack:
   rewrite_base: ''
   profiling:    false

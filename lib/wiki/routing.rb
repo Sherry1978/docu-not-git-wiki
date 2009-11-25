@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 require 'rack/patched_request'
 require 'wiki/utils'
 
@@ -23,7 +24,9 @@ module Wiki
       end
 
       def call!(env)
-        @env      = env
+        env.fix_encoding
+
+	@env      = env
         @request  = Rack::Request.new(env)
         @response = Rack::Response.new
         @params = @original_params = @request.params.with_indifferent_access
@@ -129,8 +132,8 @@ module Wiki
 
       # Stolen from rack
       def unescape(s)
-        s.gsub(/((?:%[0-9a-fA-F]{2})+)/n){
-          [$1.delete('%')].pack('H*')
+        s.gsub(/((?:%[0-9a-fA-F]{2})+)/) {
+          [$1.delete('%')].pack('H*').fix_encoding
         }
       end
 

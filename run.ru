@@ -1,4 +1,5 @@
 #!/usr/bin/env rackup
+# -*- coding: utf-8 -*-
 
 env ||= ENV['RACK_ENV'] || 'development'
 
@@ -11,12 +12,9 @@ require 'rubygems'
 require 'fileutils'
 require 'logger'
 require 'rack/patched_request'
-require 'rack/path_info'
 require 'rack/esi'
 require 'rack/session/pstore'
 require 'rack/reverseip'
-require 'rack/ban_ip'
-require 'rack/anti_spam'
 require 'wiki/app'
 
 config_file = if ENV['WIKI_CONFIG']
@@ -40,12 +38,18 @@ default_config = {
     :magic   => true,
   },
   :main_page    => 'Home',
-  :disabled_plugins => ['misc/private_wiki', 'tagging', 'filter/orgmode'],
+  :disabled_plugins => [
+    'authorization/private_wiki',
+    'tagging',
+    'filter/orgmode',
+    'tag/math-ritex',
+    'tag/math-itex2mml',
+#   'tag/math-imaginator',
+  ],
   :rack => {
+    :esi          => true,
     :rewrite_base => nil,
     :profiling    => false,
-    :tidy         => nil,
-    :anti_spam    => false,
   },
   :git => {
     :repository => ::File.join(path, '.wiki', 'repository'),
@@ -65,21 +69,22 @@ if Wiki::Config.rack.profiling?
   use Rack::Profiler, :printer => :graph
 end
 
-if Wiki::Config.rack.anti_spam?
-  use Rack::BanIP, :file => ::File.join(Wiki::Config.root, 'banned.list')
-  use Rack::AntiSpam
-end
-
 use Rack::Session::PStore, :file => ::File.join(Wiki::Config.cache, 'session.pstore')
 use Rack::ReverseIP
-use Rack::PathInfo
 use Rack::MethodOverride
 
-if !Wiki::Config.rack.tidy.blank?
-  begin
-    require 'rack/contrib'
-    use Rack::Tidy, :mode => Wiki::Config.rack.tidy.to_sym
-  rescue
+if Wiki::Config.rack.esi?
+  use Rack::ESI, :no_cache => true
+
+  if env == 'deployment' || env == 'production'
+    require 'rack/cache'
+    require 'rack/purge'
+    use Rack::Purge
+    use Rack::Cache,
+      :verbose     => false,
+      :metastore   => "file:#{::File.join(Wiki::Config.cache, 'rack', 'meta')}",
+      :entitystore => "file:#{::File.join(Wiki::Config.cache, 'rack', 'entity')}"
+    Wiki::Config.production = true
   end
 end
 
@@ -92,19 +97,8 @@ FileUtils.mkdir_p ::File.dirname(Wiki::Config.log.file), :mode => 0755
 logger = Logger.new(Wiki::Config.log.file)
 logger.level = Logger.const_get(Wiki::Config.log.level)
 
-use Rack::ESI, :no_cache => true
-use Rack::CommonLogger, logger
 
-if env == 'deployment' || env == 'production'
-  require 'rack/cache'
-  require 'rack/purge'
-  use Rack::Purge
-  use Rack::Cache,
-    :verbose     => false,
-    :metastore   => "file:#{::File.join(Wiki::Config.cache, 'rack', 'meta')}",
-    :entitystore => "file:#{::File.join(Wiki::Config.cache, 'rack', 'entity')}"
-  Wiki::Config.production = true
-end
+use Rack::CommonLogger, logger
 
 use Rack::Static, :urls => ['/static'], :root => path
 run Wiki::App.new(nil, :logger => logger)

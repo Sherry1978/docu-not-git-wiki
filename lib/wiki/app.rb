@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 require 'logger'
 require 'wiki/routing'
 require 'wiki/resource'
@@ -73,8 +74,7 @@ module Wiki
         @user ||= User.anonymous(request)
       end
 
-      content_type(accepts?('application/xhtml+xml') ? 'application/xhtml+xml' : 'text/html',
-                   :charset => 'utf-8')
+      content_type('text/html', :charset => 'utf-8')
     end
 
     # Handle 404s

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 require 'git'
 require 'wiki/routing'
 require 'wiki/utils'
@@ -7,7 +8,7 @@ require 'mimemagic'
 require 'yaml'
 
 module Wiki
-  PATH_PATTERN = '[\w:.+\-_\/](?:[\w:.+\-_\/ ]*[\w.+\-_\/])?'
+  PATH_PATTERN = '[^\s](?:.*[^\s]+)?'
   SHA_PATTERN = '[A-Fa-f0-9]{5,40}'
   STRICT_SHA_PATTERN = '[A-Fa-f0-9]{40}'
 
@@ -26,7 +27,7 @@ module Wiki
     def self.find(repo, path, sha = nil)
       path = path.to_s.cleanpath
       forbid_invalid_path(path)
-      commit = sha ? repo.gcommit(sha) : repo.log(1).path(path).first rescue nil
+      commit = sha ? (String === sha ? repo.gcommit(sha) : sha) : repo.log(1).path(path).first rescue nil
       return nil if !commit
       object = find_object(path, commit)
       object && (self != Resource ? valid_object?(object) && new(repo, path, object, commit, !sha) :
@@ -112,7 +113,13 @@ module Wiki
 
     # Page title
     def title
-      name.gsub(/\.([^.]+)$/, '')
+      n = name.gsub(/\.([^.]+)$/, '')
+      discussion? ? :discussion_of.t(:name => n[1..-1]) : n
+    end
+
+    # Discussion page
+    def discussion?
+      name.begins_with?('@')
     end
 
     # Safe name
@@ -145,10 +152,8 @@ module Wiki
       return nil if !commit
       if path.blank?
         commit.gtree rescue nil
-      elsif path =~ /\//
-        path.split('/').inject(commit.gtree) { |t, x| t.children[x] } rescue nil
       else
-        commit.gtree.children[path] rescue nil
+        path.split('/').inject(commit.gtree) { |t, x| t.children[x] } rescue nil
       end
     end
   end
@@ -226,15 +231,13 @@ module Wiki
 
     # Get metadata
     def metadata
-      @metadata ||= if mime.text? && content =~ /^---\r?\n/
+      @metadata ||= if path.ends_with?('meta') || (mime.text? && content =~ /^---\r?\n/)
         hash = YAML.load(content + "\n") rescue nil
-        Hash === hash && hash.with_indifferent_access
-      end ||
-      if path !~ /metadata$/
-        page = Page.find(@repo, path + '.metadata')
+        Hash === hash ? hash.with_indifferent_access : {}
+      else
+        page = Page.find(repo, path + '.meta', current? ? nil : commit)
         page ? page.metadata : {}
-      end ||
-      {}
+      end
     end
   end
 
@@ -269,7 +272,7 @@ module Wiki
 
     # Tree title
     def title
-      path.blank? ? :root_path.t : name
+      path.blank? ? :root_path.t : super
     end
 
     # Get archive of current tree
@@ -285,7 +288,7 @@ module Wiki
     # Get metadata
     def metadata
       @metadata ||= begin
-                      page = Page.find(@repo, path/'metadata')
+                      page = Page.find(@repo, path/'meta', commit)
                       page ? page.metadata : {}
                     end
     end
