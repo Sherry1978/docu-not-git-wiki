@@ -4,14 +4,18 @@ require 'wiki/extensions'
 
 module Wiki
   class User
-    attr_reader :name
+    attr_reader :name, :groups
     attr_accessor :email
-    question_reader :anonymous
 
-    def initialize(name, email, anonymous)
+    def anonymous?
+      @groups.include? 'anonymous'
+    end
+
+    def initialize(name, email, groups = [])
       @name = name
       @email = email
-      @anonymous = anonymous
+      @groups = groups || []
+      @groups << 'user' if !anonymous?
     end
 
     def change_password(oldpassword, password, confirm)
@@ -19,8 +23,8 @@ module Wiki
       User.service.change_password(self, oldpassword, password)
     end
 
-    def author
-      "#{@name} <#{@email}>"
+    def to_git_user
+      Gitrb::User.new(name, email)
     end
 
     def modify(&block)
@@ -35,11 +39,16 @@ module Wiki
 
     def validate
       forbid(:invalid_email.t => email !~ /\A([^@\s]+)@((?:[-a-z0-9]+\.)+[a-z]{2,})\Z/i,
-             :invalid_name.t  => name !~ /[\w.\-+_]+/,
-             :anonymous.t     => anonymous?)
+             :invalid_name.t  => name !~ /[\w.\-+_]+/)
     end
 
     @services = {}
+
+    class NullService
+      def method_missing(name, *args)
+        raise StandardError, "Authentication service does not support #{name}"
+      end
+    end
 
     class<< self
       def validate_password(password, confirm)
@@ -48,7 +57,7 @@ module Wiki
       end
 
       def define_service(name, &block)
-        service = Class.new
+        service = Class.new(NullService)
         service.class_eval(&block)
         @services[name.to_s] = service
       end
@@ -62,7 +71,7 @@ module Wiki
       def anonymous(request)
         ip = request.ip || 'unknown-ip'
         name = request.env['rack.hostbyip'] ? "#{request.env['rack.hostbyip']} (#{ip})" : ip
-        new(name, "anonymous@#{ip}", true)
+        new(name, "anonymous@#{ip}", %w(anonymous))
       end
 
       def find(name)
@@ -75,7 +84,7 @@ module Wiki
 
       def create(name, password, confirm, email)
         validate_password(password, confirm)
-        user = User.new(name, email, false )
+        user = new(name, email)
         user.validate
         service.create(user, password)
         user

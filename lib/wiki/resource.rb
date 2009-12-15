@@ -1,11 +1,15 @@
 # -*- coding: utf-8 -*-
-require 'git'
 require 'wiki/routing'
 require 'wiki/utils'
 require 'wiki/extensions'
 require 'wiki/config'
-require 'mimemagic'
 require 'yaml'
+
+gem 'gitrb', '>= 0.0.2'
+require 'gitrb'
+
+gem 'mimemagic', '>= 0.1.1'
+require 'mimemagic'
 
 module Wiki
   PATH_PATTERN = '[^\s](?:.*[^\s]+)?'
@@ -21,34 +25,53 @@ module Wiki
       end
     end
 
-    attr_reader :repo, :path, :commit
+    attr_reader :repository, :path, :commit
 
-    # Find resource in repo by path and commit sha
-    def self.find(repo, path, sha = nil)
+    # Find resource in repository by path and commit sha
+    def self.find(repository, path, sha = nil)
       path = path.to_s.cleanpath
       forbid_invalid_path(path)
-      commit = sha ? (String === sha ? repo.gcommit(sha) : sha) : repo.log(1).path(path).first rescue nil
+      commit = sha ? (String === sha ? repository.get_commit(sha) : sha) : repository.log(1, nil).first
       return nil if !commit
-      object = find_object(path, commit)
-      object && (self != Resource ? valid_object?(object) && new(repo, path, object, commit, !sha) :
-                 object.blob? && Page.new(repo, path, object, commit, !sha) ||
-                 object.tree? && Tree.new(repo, path, object, commit, !sha)) || nil
+      object = commit.tree[path] rescue nil
+      object && (self != Resource ? self.type == object.type && new(repository, path, object, commit, !sha) :
+                 object.type == 'blob' && Page.new(repository, path, object, commit, !sha) ||
+                 object.type == 'tree' && Tree.new(repository, path, object, commit, !sha)) || nil
     end
 
     # Find resource but raise not found exceptions
-    def self.find!(repo, path, sha = nil)
-      find(repo, path, sha) || raise(NotFound, path)
+    def self.find!(repository, path, sha = nil)
+      find(repository, path, sha) || raise(NotFound, path)
     end
 
     # Constructor
-    def initialize(repo, path, object = nil, commit = nil, current = false)
+    def initialize(repository, path, object = nil, commit = nil, current = false)
       path = path.to_s.cleanpath
       Resource.forbid_invalid_path(path)
-      @repo = repo
+      @repository = repository
       @path = path.cleanpath
       @object = object
       @commit = commit
       @current = current
+      reload
+    end
+
+    # Delete page
+    def delete(author = nil)
+      repository.transaction(:resource_deleted.t(:path => @path), author && author.to_git_user) do
+        repository.root.delete(@path)
+      end
+    end
+
+    # Move page
+    def move(destination, author = nil)
+      Resource.forbid_invalid_path(destination)
+      forbid(:already_exists.t => Resource.find(@repository, destination))
+      repository.transaction(:resource_moved_to.t(:path => @path, :destination => destination), author && author.to_git_user) do
+        repository.root.move(@path, destination)
+        repository.root[@path] = Gitrb::Blob.new(:data => %{<redirect path="#{destination.urlpath}"/>})
+      end
+      @path = destination
       reload
     end
 
@@ -69,7 +92,7 @@ module Wiki
 
     # Resource sha
     def sha
-      new? ? '' : @object.sha
+      new? ? '' : @object.id
     end
 
     # Browsing current tree?
@@ -86,7 +109,7 @@ module Wiki
     # History of this resource. It is truncated
     # to 30 entries.
     def history
-      @history ||= @repo.log.path(path).to_a
+      @history ||= @repository.log(30, nil, path)
     end
 
     # Previous commit this resource was changed
@@ -113,7 +136,8 @@ module Wiki
 
     # Page title
     def title
-      n = name.gsub(/\.([^.]+)$/, '')
+      i = name.index('.')
+      n = i ? name[0...i] : name
       discussion? ? :discussion_of.t(:name => n[1..-1]) : n
     end
 
@@ -131,14 +155,14 @@ module Wiki
 
     # Diff of this resource
     def diff(from, to)
-      @repo.diff(from, to).path(path)
+      @repository.diff(from, to, path)
     end
 
     protected
 
     def init_commits
       if !@latest_commit
-        commits = @repo.log(2).object(@commit.sha).path(@path).to_a
+        commits = @repository.log(2, @commit, @path)
         @prev_commit = commits[1]
         @latest_commit = commits[0]
       end
@@ -147,21 +171,12 @@ module Wiki
     def self.forbid_invalid_path(path)
       forbid(:invalid_path.t => (!path.blank? && path !~ /^#{PATH_PATTERN}$/))
     end
-
-    def self.find_object(path, commit)
-      return nil if !commit
-      if path.blank?
-        commit.gtree rescue nil
-      else
-        path.split('/').inject(commit.gtree) { |t, x| t.children[x] } rescue nil
-      end
-    end
   end
 
   # Page resource in repository
   class Page < Resource
-    def self.valid_object?(object)
-      object.blob?
+    def self.type
+      'blob'
     end
 
     # Reload cached data
@@ -178,7 +193,7 @@ module Wiki
 
     # Page content
     def content(pos = nil, len = nil)
-      c = @content || (@object && @object.contents)
+      c = @content || (@object && @object.data)
       pos ? c[[[0, pos.to_i].max, c.size].min, [0, len.to_i].max] : c
     end
 
@@ -191,35 +206,28 @@ module Wiki
     def write(content, message, author = nil)
       if !content.respond_to? :path
         content.gsub!("\r\n", "\n")
-	return if @object && @object.contents == content
+	return if @object && @object.data == content
       end
 
       forbid(:no_content.t => content.blank?,
-             :already_exists.t => new? && Resource.find(@repo, @path),
+             :already_exists.t => new? && Resource.find(@repository, @path),
              :empty_commit_message.t => message.blank?)
 
-      repo.chdir do
-        FileUtils.makedirs File.dirname(@path)
-        if content.respond_to? :path
-          FileUtils.copy(content.path, @path)
-        else
-          File.open(@path, 'w') {|f| f << content }
-        end
+      repository.transaction(message, author && author.to_git_user) do
+        content = File.read(content.path) if content.respond_to? :path # FIXME
+        repository.root[@path] = Gitrb::Blob.new(:data => content)
       end
 
-      repo.add(@path)
-      repo.commit(message, :author => author)
-
       reload
-      @commit = history.first
-      @object = Resource.find_object(@path, @commit) || raise(NotFound, path)
+      @commit = latest_commit
+      @object = @commit.tree[@path] || raise(NotFound, path)
       @current = true
     end
 
     # Page extension
     def extension
-      path =~ /.\.([^\/.]+)$/
-      $1.to_s
+      i = path.index('.')
+      i ? path[i+1..-1] : ''
     end
 
     # Detect mime type by extension, by content or use default mime type
@@ -235,7 +243,7 @@ module Wiki
         hash = YAML.load(content + "\n") rescue nil
         Hash === hash ? hash.with_indifferent_access : {}
       else
-        page = Page.find(repo, path + '.meta', current? ? nil : commit)
+        page = Page.find(repository, path + '.meta', current? ? nil : commit)
         page ? page.metadata : {}
       end
     end
@@ -245,8 +253,8 @@ module Wiki
   class Tree < Resource
     DIRECTORY_MIME = MimeMagic.new('inode/directory')
 
-    def self.valid_object?(object)
-      object.tree?
+    def self.type
+      'tree'
     end
 
     # Reload cached data
@@ -255,19 +263,19 @@ module Wiki
       @pages = @trees = @metadata = nil
     end
 
-    # Get child pages
-    def pages
-      @pages ||= @object.blobs.to_a.map {|x| Page.new(repo, path/x[0], x[1], commit, current?)}.sort_by {|a| a.name }
-    end
-
-    # Get child trees
-    def trees
-      @trees ||= @object.trees.to_a.map {|x| Tree.new(repo, path/x[0], x[1], commit, current?)}.sort_by {|a| a.name }
-    end
-
     # Get all children
     def children
       trees + pages
+    end
+
+    def pages
+      @pages ||= @object.select {|name, child| name[0..0] != '@' && child.type == 'blob' }.map {|name, child|
+      	Page.new(repository, path/name, child, commit, current?) }
+    end
+
+    def trees
+      @trees ||= @object.select {|name, child| name[0..0] != '@' && child.type == 'tree' }.map {|name, child|
+      	Tree.new(repository, path/name, child, commit, current?) }
     end
 
     # Tree title
@@ -277,7 +285,9 @@ module Wiki
 
     # Get archive of current tree
     def archive
-      @repo.archive(sha, nil, :format => 'tgz', :prefix => "#{safe_name}/")
+      file = Tempfile.new('archive').path
+      @repository.git_archive(sha, nil, '--format=zip', "--prefix=#{safe_name}/", "--output=#{file}")
+      file
     end
 
     # Directory mime type
@@ -288,7 +298,7 @@ module Wiki
     # Get metadata
     def metadata
       @metadata ||= begin
-                      page = Page.find(@repo, path/'meta', commit)
+                      page = Page.find(@repository, path/'meta', commit)
                       page ? page.metadata : {}
                     end
     end

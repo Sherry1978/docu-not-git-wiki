@@ -13,6 +13,7 @@ disabled_plugins:
   - tagging
   - tag/math-ritex
   - tag/math-itex2mml
+  - editor/markitup
 #  - tag/math-imaginator
 rack:
   rewrite_base: ''
@@ -22,4 +23,3 @@ log:
   file:      '/home/user/wiki/log'
 git:
   repository:   '/home/user/wiki/repository'
-  workspace:    '/home/user/wiki/workspace'

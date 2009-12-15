@@ -103,7 +103,7 @@ class FilterEngine < Engine
   end
 
   def output(context)
-    @filter.call(context, context.page.content)
+    @filter.call(context, context.page.content.dup)
   end
 
   class Builder < Filter::Builder
@@ -133,7 +133,7 @@ class FilterEngine < Engine
 
     def engine(name, &block)
       Engine.register(Builder.new(name, @logger).build(&block))
-      @logger.info "Filter engine #{name} successfully created"
+      @logger.debug "Filter engine #{name} successfully created"
     rescue Exception => ex
       @logger.error ex
     end

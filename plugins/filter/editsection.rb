@@ -1,5 +1,5 @@
-author       'Daniel Mendler'
-description  'Adds links for section editing for creole'
+author      'Daniel Mendler'
+description 'Adds links for section editing for creole'
 
 Filter.create :editsection do |content|
   if context.page.modified? || !context.page.current?
@@ -31,7 +31,8 @@ Filter.create :editsection do |content|
         len - pos[i][1]
       end
       msg = escape_html "#{pos[i][3]} edited"
-      %Q{<span class="editlink">[<a href="#{action_path(context.page, :edit)}?pos=#{pos[i][1]}&amp;len=#{l}&amp;message=#{msg}">Edit</a>]</span>}
+      %Q{<span class="editlink">[<a href="#{action_path(context.page, :edit)}?pos=#{pos[i][1]}&amp;len=#{l}&amp;message=#{msg}" \
+title="Edit section #{pos[i][3]}">Edit</a>]</span>}
     end
     content
   end

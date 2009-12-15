@@ -21,21 +21,29 @@
   - if @resource
     - if !@resource.new?
       %li
-        %a.action-view{:href=> @resource.path.urlpath, :accesskey=>'c'}= :view.t
+        %a.action-view{:href=> @resource.path.urlpath, :accesskey=>'v'}= :view.t
         %ul
           = list_of(Wiki::Engine.find_all(@resource).reject {|engine| @engine && engine.name == @engine.name }) do |engine|
             %a{:href => resource_path(@resource, :output => engine.name)}= engine.name
     - if !@resource.path.blank?
       %li
         - if @resource.discussion?
-          %a.action-page{:href=> (@resource.path/'..'/@resource.name[1..-1]).urlpath }= :page.t
+          %a.action-page{:href=> (@resource.path/'..'/@resource.name[1..-1]).urlpath, :accesskey=>'p' }= :page.t
         - else
-          %a.action-discuss{:href=> (@resource.path/'..'/"@#{@resource.name}").urlpath }= :discuss.t
-  %li
-    %a.action-new{:href=> @resource && @resource.tree? ? (@resource.path/'new page/new').urlpath : '/new page/new'  }= :new_page.t
+          %a.action-discuss{:href=> (@resource.path/'..'/"@#{@resource.name}").urlpath, :accesskey=>'d' }= :discuss.t
   - if menu.include?(:edit) && @resource.page?
     %li
       %a.action-edit{:href=>action_path(@resource, :edit), :accesskey=>'e'}= :edit.t
+      %ul
+        %li
+          %a.action-new{:href=> @resource && @resource.tree? ? (@resource.path/'new page/new').urlpath : '/new page/new', :accesskey=>'n'}= :new_page.t
+        %li
+          %a.action-move{:href=> action_path(@resource, :move) }= :move.t
+        %li
+          %a.action-delete{:href=> action_path(@resource, :delete) }= :delete.t
+  - else
+    %li
+      %a.action-new{:href=> @resource && @resource.tree? ? (@resource.path/'new page/new').urlpath : '/new page/new', :accesskey=>'n'}= :new_page.t
   - if menu.include?(:history)
     %li
       %a.action-history{:href=>action_path(@resource, :history), :accesskey=>'h'}= :history.t
