@@ -19,11 +19,5 @@
       %label{:for=>'email'}= :email.t
       %input{:type=>'email',:name=>'email',:id=>'email',:value=>@user.email}
       %br
-      %h2= :groups.t
-      %ul
-        = list_of(@user.groups) do |x|
-          = x
+      %input{:type=>'submit', :value=>:save.t}
       %br
-      %button{:type=>'submit'}= :save.t
-      %br
-

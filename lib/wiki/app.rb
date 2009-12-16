@@ -14,7 +14,6 @@ module Wiki
     include Helper
     include Templates
     patterns :path => PATH_PATTERN, :sha => SHA_PATTERN
-    attr_reader :repository
 
     def initialize(app = nil, opts = {})
       @app = app
@@ -22,9 +21,18 @@ module Wiki
 
       I18n.load_locale(File.join(File.dirname(__FILE__), 'locale.yml'))
 
-      @logger.debug 'Opening repository'
-      @repository = Gitrb::Repository.new(:path => Config.git.repository, :create => true,
-                                          :bare => true, :logger => @logger)
+      if File.exists?(Config.git.repository) && File.exists?(Config.git.workspace)
+        @logger.info 'Opening repository'
+        @repo = Git.open(Config.git.workspace, :repository => Config.git.repository,
+                         :index => File.join(Config.git.repository, 'index'), :log => @logger)
+      else
+        @logger.info 'Initializing repository'
+        @repo = Git.init(Config.git.workspace, :repository => Config.git.repository,
+                         :index => File.join(Config.git.repository, 'index'), :log => @logger)
+        page = Page.new(@repo, Config.main_page)
+        page.write(:main_page_text.t, :initialize_repository.t)
+        @logger.info 'Repository initialized'
+      end
 
       Plugin.logger = @logger
       Plugin.dir = File.join(Config.root, 'plugins')
@@ -32,20 +40,12 @@ module Wiki
       Plugin.start
 
       @logger.debug self.class.dump_routes
-      @logger.info 'Wiki successfully started'
-    end
-
-    def dup
-      super.instance_eval do
-        @repository = @repository.dup
-        self
-      end
     end
 
     class<< self
       attr_reader :plugin_files
 
-      def static_files(*files)
+      def public_files(*files)
         if !@plugin_files
           @plugin_files = {}
           get "/sys/:file", :patterns => {:file => /.*/} do
@@ -59,11 +59,7 @@ module Wiki
         end
         name = File.dirname(Plugin.current.name)
         dir = File.dirname(Plugin.current.file)
-        files.each do |file|
-          Dir.glob(File.join(dir, file)).each do |path|
-            @plugin_files[name/path[dir.length+1..-1]] = path
-          end
-        end
+        files.each { |file| @plugin_files[name/file] = File.join(dir, file) }
       end
     end
 
@@ -110,6 +106,7 @@ module Wiki
     end
 
     get '/login', '/signup' do
+      cache_control :static => true
       haml :login
     end
 
@@ -159,56 +156,47 @@ module Wiki
       haml :profile
     end
 
+    get "/:style.css" do
+      begin
+        # Try to use wiki version
+        params[:output] = 'css'
+        params[:path] = params[:style] + '.sass'
+        show
+      rescue Resource::NotFound
+        pass if !%w(screen print reset).include?(params[:style])
+        # Fallback to default style
+        cache_control :max_age => 3600
+        content_type 'text/css', :charset => 'utf-8'
+        sass :"style/#{params[:style]}"
+      end
+    end
+
     get '/commit/:sha' do
-      @commit = repository.get_commit(params[:sha])
+      cache_control :etag => params[:sha], :validate_only => true
+      @commit = @repo.gcommit(params[:sha])
       cache_control :etag => @commit.sha, :last_modified => @commit.date
-      @diff = repository.diff(@commit.parent.first.sha, @commit.sha)
+      @diff = @repo.diff(@commit.parent, @commit.sha)
       haml :commit
     end
 
     get '/?:path?/archive' do
-      tree = Tree.find!(repository, params[:path])
+      tree = Tree.find!(@repo, params[:path])
       cache_control :etag => tree.sha, :last_modified => tree.commit.date
-      send_file(tree.archive, :content_type => 'application/zip', :filename => "#{tree.safe_name}.zip")
+      archive = tree.archive
+      send_file(archive, :content_type => 'application/x-tar-gz', :filename => "#{tree.safe_name}.tar.gz")
     end
 
     get '/?:path?/history' do
-      @resource = Resource.find!(repository, params[:path])
+      @resource = Resource.find!(@repo, params[:path])
       cache_control :etag => @resource.sha, :last_modified => @resource.commit.date
       haml :history
     end
 
-    get '/:path/move' do
-      @resource = Resource.find!(repository, params[:path])
-      haml :move
-    end
-
-    get '/:path/delete' do
-      @resource = Resource.find!(repository, params[:path])
-      haml :delete
-    end
-
-    post '/:path/move' do
-      begin
-        @resource = Resource.find!(repository, params[:path])
-        invoke_hook(:resource_move, @resource, params[:destination]) { @resource.move(params[:destination], @user) }
-        redirect @resource.path.urlpath
-      rescue StandardError => error
-	message :error, error
-        haml :move
-      end
-    end
-
-    post '/:path/delete' do
-      @resource = Resource.find!(repository, params[:path])
-      invoke_hook(:resource_delete, @resource) { @resource.delete(@user) }
-      haml :deleted
-    end
-
     get '/?:path?/diff' do
-      @resource = Resource.find!(repository, params[:path])
+      @resource = Resource.find!(@repo, params[:path])
       begin
         forbid('From not selected' => params[:from].blank?, 'To not selected' => params[:to].blank?)
+        cache_control :static => true
         @diff = @resource.diff(params[:from], params[:to])
         haml :diff
       rescue StandardError => error
@@ -219,7 +207,7 @@ module Wiki
 
     get '/:path/edit', '/:path/upload' do
       begin
-        @resource = Page.find!(repository, params[:path])
+        @resource = Page.find!(@repo, params[:path])
         haml :edit
       rescue Resource::NotFound
         pass if action? :upload # Pass to next handler because /upload is used twice
@@ -230,13 +218,14 @@ module Wiki
     get '/new', '/upload', '/:path/new', '/:path/upload' do
       begin
         # Redirect to edit for existing pages
-        if !params[:path].blank? && Resource.find(repository, params[:path])
+        if !params[:path].blank? && Resource.find(@repo, params[:path])
           redirect (params[:path]/'edit').urlpath
         end
-        @resource = Page.new(repository, params[:path])
+        @resource = Page.new(@repo, params[:path])
+        boilerplate
         forbid(:path_not_allowed.t => name_clash?(params[:path]))
       rescue StandardError => error
-	message :error, error
+        message :error, error
       end
       haml :new
     end
@@ -253,12 +242,12 @@ module Wiki
 
     # Edit form sends put requests
     put '/:path' do
-      @resource = Page.find!(repository, params[:path])
+      @resource = Page.find!(@repo, params[:path])
       begin
         forbid(:version_conflict.t => @resource.commit.sha != params[:sha]) # TODO: Implement conflict diffs
         if action?(:upload) && params[:file]
           invoke_hook :page_save, @resource do
-            @resource.write(params[:file][:tempfile], :file_uploaded.t, @user)
+            @resource.write(params[:file][:tempfile], :file_uploaded.t, @user.author)
           end
         elsif action?(:edit) && params[:content]
           invoke_hook :page_save, @resource do
@@ -269,7 +258,7 @@ module Wiki
                       else
                         params[:content]
                       end
-            @resource.write(content, params[:message], @user)
+            @resource.write(content, params[:message], @user.author)
           end
         else
           redirect((@resource.path/'edit').urlpath)
@@ -285,21 +274,21 @@ module Wiki
     post '/', '/:path' do
       begin
         pass if name_clash?(params[:path])
-        @resource = Page.new(repository, params[:path])
+        @resource = Page.new(@repo, params[:path])
         if action?(:upload) && params[:file]
           invoke_hook :page_save, @resource do
-            @resource.write(params[:file][:tempfile], "File #{@resource.path} uploaded", @user)
+            @resource.write(params[:file][:tempfile], "File #{@resource.path} uploaded", @user.author)
           end
         elsif action?(:new)
           invoke_hook :page_save, @resource do
-            @resource.write(params[:content], params[:message], @user)
+            @resource.write(params[:content], params[:message], @user.author)
           end
         else
           redirect '/new'
         end
         redirect @resource.path.urlpath
       rescue StandardError => error
-	message :error, error
+        message :error, error
         haml :new
       end
     end
@@ -325,8 +314,12 @@ module Wiki
 
     # Show resource
     def show
-      @resource = Resource.find!(repository, params[:path], params[:sha])
-      cache_control :etag => @resource.latest_commit.sha, :last_modified => @resource.latest_commit.date
+      @resource = Resource.find!(@repo, params[:path], params[:sha])
+      if @resource.current?
+        cache_control :etag => @resource.latest_commit.sha, :last_modified => @resource.latest_commit.date
+      else
+        cache_control :static => true
+      end
 
       @engine = Engine.find!(@resource, params[:output])
       @content = @engine.render(@resource, params, no_cache?)
@@ -335,6 +328,14 @@ module Wiki
       else
         content_type @engine.mime(@resource).to_s
         @content
+      end
+    end
+
+    # Boilerplate for new pages
+    def boilerplate
+      if @resource.path =~ /^\w+\.sass$/
+	name = File.join(Config.root, 'views', 'style', @resource.path)
+	params[:content] = File.read(name) if File.file?(name)
       end
     end
 

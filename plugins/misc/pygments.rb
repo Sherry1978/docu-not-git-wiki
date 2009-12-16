@@ -68,6 +68,6 @@ setup do
       '<link rel="stylesheet" href="/sys/misc/pygments.css" type="text/css"/>'
     end
 
-    static_files 'pygments.css'
+    public_files 'pygments.css'
   end
 end

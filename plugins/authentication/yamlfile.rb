@@ -12,7 +12,7 @@ User.define_service(:yamlfile) do
   def find(name)
     @store.transaction(true) do |store|
       user = store[name]
-      user && User.new(name, user['email'], user['groups'])
+      user && User.new(name, user['email'], false)
     end
   end
 
@@ -20,7 +20,7 @@ User.define_service(:yamlfile) do
     @store.transaction(true) do |store|
       user = store[name]
       forbid('Wrong username or password' => !user || user['password'] != crypt(password))
-      User.new(name, user['email'], user['groups'])
+      User.new(name, user['email'], false)
     end
   end
 
@@ -29,8 +29,7 @@ User.define_service(:yamlfile) do
       forbid('User already exists' => store[user.name])
       store[user.name] = {
         'email' => user.email,
-        'password' => crypt(password),
-	'groups' => user.groups
+        'password' => crypt(password)
       }
     end
   end
@@ -39,7 +38,6 @@ User.define_service(:yamlfile) do
     @store.transaction do |store|
       forbid('User not found' => !store[user.name])
       store[user.name]['email'] = user.email
-      store[user.name]['groups'] = user.groups
     end
   end
 

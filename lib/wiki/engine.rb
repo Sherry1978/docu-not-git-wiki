@@ -9,7 +9,7 @@ module Wiki
     include Helper
     include Templates
 
-    class Context < HashWithIndifferentAccess
+    class Context < Hash
       attr_reader :resource, :engine
       alias page resource
       alias tree resource

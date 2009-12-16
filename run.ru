@@ -12,11 +12,10 @@ require 'rubygems'
 require 'fileutils'
 require 'logger'
 require 'rack/patched_request'
+require 'rack/esi'
+require 'rack/session/pstore'
 require 'rack/reverseip'
 require 'wiki/app'
-
-# Try to load server gem
-gem(server, '>= 0') rescue nil
 
 config_file = if ENV['WIKI_CONFIG']
   ENV['WIKI_CONFIG']
@@ -49,13 +48,12 @@ default_config = {
   ],
   :rack => {
     :esi          => true,
-    :embed        => false,
     :rewrite_base => nil,
     :profiling    => false,
-    :deflater     => true,
   },
   :git => {
     :repository => ::File.join(path, '.wiki', 'repository'),
+    :workspace  => ::File.join(path, '.wiki', 'workspace'),
   },
   :log => {
     :level => 'INFO',
@@ -67,33 +65,18 @@ Wiki::Config.update(default_config)
 Wiki::Config.load(config_file)
 
 if Wiki::Config.rack.profiling?
-  gem 'rack-contrib', '>= 0'
   require 'rack/contrib'
   use Rack::Profiler, :printer => :graph
 end
 
-use Rack::Session::Pool
+use Rack::Session::PStore, :file => ::File.join(Wiki::Config.cache, 'session.pstore')
 use Rack::ReverseIP
 use Rack::MethodOverride
 
-if Wiki::Config.rack.deflater?
-  require 'rack/deflater'
-  use Rack::Deflater
-end
-
-if Wiki::Config.rack.embed?
-  gem 'rack-embed', '>= 0'
-  require 'rack/embed'
-  use Rack::Embed, :threaded => true
-end
-
 if Wiki::Config.rack.esi?
-  gem 'minad-rack-esi', '>= 0'
-  require 'rack/esi'
-  use Rack::ESI
+  use Rack::ESI, :no_cache => true
 
   if env == 'deployment' || env == 'production'
-    gem 'rack-cache', '>= 0.5.2'
     require 'rack/cache'
     require 'rack/purge'
     use Rack::Purge
@@ -113,6 +96,7 @@ end
 FileUtils.mkdir_p ::File.dirname(Wiki::Config.log.file), :mode => 0755
 logger = Logger.new(Wiki::Config.log.file)
 logger.level = Logger.const_get(Wiki::Config.log.level)
+
 
 use Rack::CommonLogger, logger
 

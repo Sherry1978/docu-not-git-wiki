@@ -1,6 +1,6 @@
 author       'Daniel Mendler'
 description  'Markdown text filter'
-dependencies 'engine/filter', 'gem:rdiscount'
+dependencies 'engine/filter'
 require      'rdiscount'
 
 Filter.create :markdown do |content|

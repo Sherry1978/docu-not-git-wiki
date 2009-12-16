@@ -35,15 +35,6 @@ module Wiki
     def head(content = nil, &block);     define_block(:head, content, &block);     end
     def title(content = nil, &block);    define_block(:title, content, &block);    end
 
-    def theme_links
-      default = File.basename(File.dirname(File.readlink(File.join(Config.root, 'static', 'themes', 'default'))))
-      Dir.glob(File.join(Config.root, 'static', 'themes', '*', 'style.css')).map do |file|
-        name = File.basename(File.dirname(file))
-        next if name == 'default'
-        %{<link rel="#{name == default ? 'alternate ' : ''}stylesheet" href="/static/themes/#{name}/style.css" type="text/css" title="#{name}"/>}
-      end.compact.join("\n")
-    end
-
     def menu(*menu)
       define_block :menu, haml(:menu, :layout => false, :locals => { :menu => menu })
     end
@@ -89,40 +80,26 @@ module Wiki
     def cache_control(opts)
       return if !Config.production?
 
-      last_modified = opts[:last_modified]
-      modified_since = request.env['HTTP_IF_MODIFIED_SINCE']
-      last_modified = last_modified.to_time if last_modified.respond_to?(:to_time)
-      last_modified = last_modified.httpdate if last_modified.respond_to?(:httpdate)
-
-      mode = opts[:private] ? 'private' : 'public'
-
-      if @user && !@user.anonymous?
-        # Always private mode if user is logged in
-        mode = 'private'
-
-        # Special etag for authenticated user
-        opts[:etag] = Digest::MD5.hexdigest("#{@user.name}#{opts[:etag]}") if opts[:etag]
-      end
-
       if opts[:etag]
         value = '"%s"' % opts[:etag]
-        response['ETag'] = value
-        response['Last-Modified'] = last_modified if last_modified
+        response['ETag'] = value if !opts[:validate_only]
         if etags = env['HTTP_IF_NONE_MATCH']
           etags = etags.split(/\s*,\s*/)
-          # Etag is matching and modification date matches (HTTP Spec §14.26)
-          halt(304) if (etags.include?(value) || etags.include?('*')) && (!last_modified || last_modified == modified_since)
+          halt(304) if etags.include?(value) || etags.include?('*')
         end
-      elsif last_modified
-        # If-Modified-Since is only processed if no etag supplied.
-        # If the etag match failed the If-Modified-Since has to be ignored (HTTP Spec §14.26)
-        response['Last-Modified'] = last_modified
-        halt(304) if last_modified == modified_since
       end
 
+      if opts[:last_modified]
+        time = opts[:last_modified]
+        time = time.to_time if time.respond_to?(:to_time)
+        time = time.httpdate if time.respond_to?(:httpdate)
+        response['Last-Modified'] = time if !opts[:validate_only]
+        halt(304) if time == request.env['HTTP_IF_MODIFIED_SINCE']
+      end
+
+      mode = opts[:private] ? 'private' : 'public'
       max_age = opts[:max_age] || (opts[:static] ? 2592000 : 0)
-      revalidate = opts[:proxy_revalidate] ? 'proxy-revalidate' : 'must-revalidate'
-      response['Cache-Control'] = "#{mode}, max-age=#{max_age}, #{revalidate}"
+      response['Cache-Control'] = "#{mode}, max-age=#{max_age}, must-revalidate"
     end
 
     def no_caching
@@ -172,7 +149,7 @@ module Wiki
     end
 
     def date(t)
-      %Q{<span class="date epoch-#{t.to_i}">#{t.strftime('%d %h %Y %H:%M')}</span>}
+      %Q{<span class="date seconds_#{t.to_i}">#{t.strftime('%d %h %Y %H:%M')}</span>}
     end
 
     def breadcrumbs(resource)
@@ -218,7 +195,7 @@ module Wiki
       if session[:messages]
         out = '<ul>'
         session[:messages].each do |msg|
-          out << %Q{<li class="#{msg[0]}">#{escape_html msg[1]}</li>}
+          out += %Q{<li class="#{msg[0]}">#{escape_html msg[1]}</li>}
         end
         session.delete(:messages)
         out + '</ul>'

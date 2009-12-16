@@ -1,7 +1,7 @@
-author       'Daniel Mendler'
-description  'LaTeX -> MathML support via itex2MML'
 dependencies 'filter/tag', 'misc/mathml'
 require      'open3'
+author       'Daniel Mendler'
+description  'LaTeX -> MathML support via itex2MML'
 
 # Check for installed version
 `itex2MML --version`

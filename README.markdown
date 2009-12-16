@@ -28,14 +28,14 @@ Installation
 
 First, you have to install the [Gem][] dependencies via `gem`:
 
-    gem sources -a http://gemcutter.org
-    gem install creole
-    gem install gitrb
+    gem sources -a http://gems.github.org/
+    gem install minad-creole
+    gem install minad-git
     gem install minad-rack-esi
-    gem install mimemagic
+    gem install minad-mimemagic
     gem install rack-cache
     gem install haml
-    gem install mongrel
+    gem install thin
     gem install rack
 
 ### Optional:
@@ -45,13 +45,14 @@ First, you have to install the [Gem][] dependencies via `gem`:
     gem install RedCloth
     gem install maruku
     gem install rubypants
-    gem install imaginator
-    gem install evaluator
-    gem install rack-embed
+    gem install minad-imaginator
+    gem install minad-evaluator
+    
+    easy_install pygments
 
 Then, run the program using the command:
 
-    ./run.ru -smongrel -p4567
+    ./run.ru -sthin -p4567
 
 Point your web browser at <http://localhost:4567>.
 
@@ -63,20 +64,30 @@ If you use Ruby 1.9, it is very important that you set the environment
 variable LANG to a UTF-8 locale. Otherwise, you might get encoding exceptions.
 
 For production purposes, I recommend that you deploy the wiki
-with Mongrel. You can use the WIKI_CONFIG environment variable
-to specify multiple wiki configurations.
+with Thin and Apache/nginx load balancing.
+
+    # Create Thin config
+    thin config -C thin.yml -s 3 -p 5000 -R run.ru -e deployment -d
+
+    # Useful if you have multiple installations
+    # export WIKI_CONFIG=/srv/wiki/config.yml
+
+    # Start Thin servers
+    export LANG=en_US.UTF-8
+    thin start -C thin.yml
 
 Dependencies
 ------------
 
 - [HAML][]
-- [gitrb][]
+- [ruby-git][]
+- [RubyPants][]
 
 ### Optional Dependencies
 
 - [hpricot][] for tags in the wikitext
 - [imaginator][] for [LaTeX][]/[GraphViz][] output
-  (`imaginator` Gem from [gemcutter][])
+  (`minad-imaginator` Gem from [GitHub][])
 - [Pygments][] for syntax highlighting
 - [ImageMagick][] for image scaling and svg rendering
 - [RubyPants][] to fix punctuation
@@ -86,7 +97,7 @@ Dependencies
 At least one of these renderers should be installed:
 
 - [creole][] for creole wikitext rendering
-  (`creole` Gem from [gemcutter][])
+  (`minad-creole` Gem from [GitHub][])
 - [RDiscount][] for Markdown rendering
 - [RedCloth][] for Textile rendering
 
@@ -103,6 +114,5 @@ At least one of these renderers should be installed:
 [RDiscount]:http://github.com/rtomayko/rdiscount
 [RedCloth]:http://whytheluckystiff.net/ruby/redcloth/
 [ImageMagick]:http://www.imagemagick.org/
-[gitrb]:http://github.com/minad/gitrb/
-[gemcutter]:http://gemcutter.org/
+[ruby-git]:http://github.com/schacon/ruby-git
 [RubyPants]:http://chneukirchen.org/blog/static/projects/rubypants.html

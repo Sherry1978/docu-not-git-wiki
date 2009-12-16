@@ -1,6 +1,6 @@
 author       'Daniel Mendler'
 description  'Textile text filter'
-dependencies 'engine/filter', 'gem:RedCloth'
+dependencies 'engine/filter'
 require      'redcloth'
 
 Filter.create :textile do |content|

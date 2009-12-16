@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 require 'wiki/extensions'
+require 'haml'
+require 'sass'
 require 'yaml'
 require 'cgi'
-
-gem 'haml', '>= 2.2.0'
-require 'haml'
 
 module Wiki
   class MultiError < StandardError
@@ -59,10 +58,19 @@ module Wiki
 
   module Templates
     HAML_OPTIONS = { :format => :xhtml, :attr_wrapper  => '"', :ugly => true }
+    SASS_OPTIONS = { :style => :compat }
 
     class << self
       lazy_reader(:paths) { [File.join(Config.root, 'views')] }
       lazy_reader :template_cache, {}
+    end
+
+    def sass(name, opts = {})
+      template = Symbol === name ? lookup_template(:sass, name) : name
+      name = Symbol === name ? "#{name}.sass" : 'inline sass'
+      sass_opts = SASS_OPTIONS.merge(opts[:options] || {}).merge(:filename => name)
+      engine = ::Sass::Engine.new(template, sass_opts)
+      engine.render
     end
 
     def haml(name, opts = {})
@@ -74,34 +82,24 @@ module Wiki
     private
 
     def render_haml(name, opts = {}, &block)
-      haml_opts = HAML_OPTIONS.merge(opts[:options] || {}).merge(:filename => Symbol === name ? "#{name}.haml" : 'inline haml')
-      engine = load_template(:haml, name, haml_opts) { |content, opt| ::Haml::Engine.new(content, opt) }
+      template = Symbol === name ? lookup_template(:haml, name) : name
+      name = Symbol === name ? "#{name}.haml" : 'inline haml'
+      haml_opts = HAML_OPTIONS.merge(opts[:options] || {}).merge(:filename => name)
+      engine = ::Haml::Engine.new(template, haml_opts)
       engine.render(self, opts[:locals] || {}, &block)
     end
 
-    def load_template(type, name, opts)
+    def lookup_template(type, name)
       if Config.production?
-        id = [type,name,opts]
-        return Templates.template_cache[id] if Templates.template_cache[id]
+        Templates.template_cache["#{type}-#{name}}"] ||= load_template(type, name)
+      else
+        load_template(type, name)
       end
+    end
 
-      content = if Symbol === name
-                  paths = Templates.paths.map {|path| File.join(path, "#{name}.#{type}") }
-                  path = paths.find {|path| File.exists?(path) }
-                  raise RuntimeError, "Template #{name} not found" if !path
-                  File.read(path)
-                else
-                  name
-                end
-
-      template = yield(content, opts)
-
-      if Config.production?
-        id = [type,name,opts]
-        Templates.template_cache[id] = template
-      end
-
-      template
+    def load_template(type, name)
+      paths = Templates.paths.map {|path| File.join(path, "#{name}.#{type}") }
+      File.read(paths.find {|path| File.exists?(path) })
     end
   end
 
@@ -149,33 +147,6 @@ module Wiki
         end
         result
       end
-    end
-  end
-
-  class Semaphore
-    def initialize(counter = 1)
-      @mutex = Mutex.new
-      @cond = ConditionVariable.new
-      @counter = counter
-    end
-
-    def enter
-      @mutex.synchronize do
-        @cond.wait(@mutex) if (@counter -= 1) < 0
-      end
-    end
-
-    def leave
-      @mutex.synchronize do
-        @cond.signal if (@counter += 1) <= 0
-      end
-    end
-
-    def synchronize
-      enter
-      yield
-    ensure
-      leave
     end
   end
 end
