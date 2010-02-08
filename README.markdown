@@ -1,5 +1,25 @@
 git-wiki
 ========
+# git-wiki fork:
+
+## added features
+- nested pages
+- double click page to edit
+- instant preview while editing
+- save and continue editing
+
+## notable changes
+- /pagename/edit is not /pagename?edit=1
+
+## future features
+- deleting pages
+- restoring deleted pages
+- moving pages
+- shared sub-wiki's using submodules
+- log / history / diff view
+
+git-wiki: because who needs cool names when you use git?
+========================================================
 
 git-wiki is a wiki that relies on git to keep pages' history and
 [Sinatra][] to serve them.  This geek brain overlay system aims to
@@ -90,8 +110,13 @@ The following [gems][] are required to run git-wiki:
 - [RDiscount][]
 - [RestClient][]
 
-Run with `mkdir ~/wiki && (cd ~/wiki && git init) && ./run.ru -sthin -p4567`
-and point your browser at <http://0.0.0.0:4567/>. Enjoy!
+## Setup:
+`mkdir ~/wiki && (cd ~/wiki && git init)` `./run.ru -sthin -p4567`
+
+then just point your browser at <http://0.0.0.0:4567/> and you're done. Enjoy!
+
+### Note:
+if you're using passenger you'll want to symlink git_wiki/public into the repo's root directory 
 
 See also
 --------
