@@ -529,7 +529,6 @@ __END__
 
 @@ show
 - title @page.name
->>>>>>> upstream/master
 #content
   ~"#{@page.to_html}"
 #page_navigation
