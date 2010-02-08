@@ -1,0 +1,87 @@
+#treeview-tabs
+  li
+    :background #FFF
+    :display block !important
+    &.tabs-selected
+      :display none !important
+
+=ext(!ext)
+  .ext_#{!ext}
+    :background url(/static/images/ext/#{!ext}.png) no-repeat center center !important
+
+#treeview
+  +ext("7z")
+  +ext("bz2")
+  +ext("doc")
+  +ext("flac")
+  +ext("gz")
+  +ext("html")
+  +ext("java")
+  +ext("jpg")
+  +ext("midi")
+  +ext("mp3")
+  +ext("ogg")
+  +ext("pdf")
+  +ext("php")
+  +ext("png")
+  +ext("ppt")
+  +ext("psd")
+  +ext("rar")
+  +ext("rb")
+  +ext("sh")
+  +ext("tar")
+  +ext("txt")
+  +ext("wma")
+  +ext("xls")
+  +ext("zip")
+  :padding 0
+  :margin 0
+  :width 155px
+  :max-height 600px
+  :font-size 9pt
+  :overflow auto
+  ul
+    :list-style none
+    :display block
+    :clear both
+    li
+      :border none !important
+      :text-indent 0 !important
+      :clear both
+      li
+        :margin 0
+        :padding 0 1em !important
+      a, a:active, a:hover
+        :font-size 90% !important
+        :font-variant normal
+        :text-indent 0 !important
+        :margin 0 !important
+        :padding 0 !important
+        :float left
+        :width 1px
+        :overflow visible
+        :white-space nowrap !important
+        :color #333
+        :background transparent
+      .hitarea, .placeholder
+        :width 32px
+        :height 16px
+        :cursor pointer
+        :float left
+        div
+          :width 16px
+          :height 16px
+          :float left
+    .wait .arrow
+      :background url(treeview/spinner.gif) no-repeat center center !important
+    .collapsed .arrow
+      :background url(treeview/collapsed.png) no-repeat center center
+    .expanded .arrow
+      :background url(treeview/expanded.png) no-repeat center center
+    .page
+      :background url(/static/images/page.png) no-repeat center center
+    .expanded .tree
+      :background url(treeview/tree_open.png) no-repeat center center
+    .collapsed .tree
+      :background url(/static/images/tree.png) no-repeat center center
+

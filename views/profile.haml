@@ -1,0 +1,23 @@
+- title :profile_title.t(:user => @user.name)
+- if @user.anonymous?
+  = :anonymous_profile.t
+- else
+  %form{:action => '/profile', :method=>'post'}
+    .fieldset
+      = show_messages
+      %h2= :change_password.t
+      %label{:for=>'oldpassword'}= :old_password.t
+      %input{:type=>'password',:name=>'oldpassword',:id=>'oldpassword'}
+      %br
+      %label{:for=>'password'}= :password.t
+      %input{:type=>'password',:name=>'password',:id=>'password'}
+      %br
+      %label{:for=>'confirm'}= :confirmation.t
+      %input{:type=>'password',:name=>'confirm',:id=>'confirm'}
+      %br
+      %h2= :settings.t
+      %label{:for=>'email'}= :email.t
+      %input{:type=>'email',:name=>'email',:id=>'email',:value=>@user.email}
+      %br
+      %input{:type=>'submit', :value=>:save.t}
+      %br

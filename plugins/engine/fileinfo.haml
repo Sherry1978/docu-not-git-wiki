@@ -1,0 +1,18 @@
+%table.zebra
+  %tbody
+    %tr
+      %td Name
+      %td&= @resource.name
+    %tr
+      %td Last modified
+      %td= date @resource.latest_commit.date
+    %tr
+      %td Version
+      %td.sha= @resource.latest_commit.sha
+    %tr
+      %td Mime-Type
+      %td= @resource.mime
+    %tr
+      %td Download
+      %td
+        %a{:href=> resource_path(@resource, :output => 'raw')} Download File

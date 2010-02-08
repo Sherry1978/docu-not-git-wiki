@@ -1,100 +1,106 @@
-git-wiki: because who needs cool names when you use git?
-========================================================
+README
+======
 
-git-wiki is a wiki that relies on git to keep pages' history
-and [Sinatra][] to serve them.
+Git-Wiki is a wiki that stores pages in a [Git][] repository.
 
-I wrote git-wiki as a quick and dirty hack, mostly to play with Sinatra.
-It turned out that Sinatra is an awesome little web framework and that this
-hack isn't as useless as I first though since I now use it daily.
+See the demo installation at <http://git-wiki.kicks-ass.org/>.
 
-However, it is definitely not feature rich and will probably never be because
-I mostly use it as a web frontend for `git`, `ls` and `vim`.
-
-If you want history, search, etc. you should look at other people's [forks][],
-especially [al3x][]'s one.
-
-Install
--------
-
-The fellowing [gems][] are required to run git-wiki:
-
-- [Sinatra][]
-- [mojombo-grit][]
-- [HAML][]
-- [RDiscount][]
-
-Run with `mkdir ~/wiki && (cd ~/wiki && git init) && ./run.ru -sthin -p4567`
-and point your browser at <http://0.0.0.0:4567/>. Enjoy!
-
-See also
+Features
 --------
 
-- [How to use vim to edit &lt;textarea&gt; in lynx][tip]
-- [WiGit][] think git-wiki except implemented in PHP
-- [ikiwiki][] is a wiki compiler supporting git
+A lot of the features are implemented as plugins.
 
+- History
+- Show diffs
+- Edit page, upload files
+- Section editing
+- Plugin system
+- Multiple renderers
+- LaTeX/Graphviz
+- Syntax highlighting (embedded code blocks)
+- Image support, SVG support
+- Auto-generated table of contents
+- Templates
+- XML tags can be used to extend Wiki syntax
 
-  [Sinatra]: http://www.sinatrarb.com
-  [GitHub]: http://github.com/sr/git-wiki
-  [forks]: http://github.com/sr/git-wiki/network
-  [al3x]: http://github.com/al3x/gitwiki
-  [gems]: http://www.rubygems.org/
-  [mojombo-grit]: http://github.com/mojombo/grit
-  [HAML]: http://haml.hamptoncatlin.com
-  [RDiscount]: http://github.com/rtomayko/rdiscount
-  [tip]: http://wiki.infogami.com/using_lynx_&_vim_with_infogami
-  [WiGit]: http://el-tramo.be/software/wigit
-  [ikiwiki]: http://ikiwiki.info
+Installation
+------------
 
-Quotes
-------
+First, you have to install the [Gem][] dependencies via `gem`:
 
-<blockquote>
-<p>[...] the first wiki engine I'd consider worth using for my own projects.</p>
-<p><cite>
-<a href="http://www.dekorte.com/blog/blog.cgi?do=item&amp;id=3319">
-Steve Dekorte</a>
-</cite></p>
-</blockquote>
+### Optional:
 
-<blockquote>
-<p>Oh, it looks like <a href="http://atonie.org/2008/02/git-wiki">Git Wiki</a>
-may be the starting point for what I need...</p>
-<p><cite><a href="http://tommorris.org/blog/2008/03/09#pid2761430">
-Tom Morris on "How to build the perfect wiki"</a></cite></p>
-</blockquote>
+    gem install hpricot
+    gem install rdiscount
+    gem install RedCloth
+    gem install maruku
+    gem install rubypants
+    gem install minad-imaginator
+    gem install minad-evaluator
 
-<blockquote>
-<p>What makes git-wiki so cool is because it is backed by a git store,
-you can clone your wiki just like you could any other git repository.
-I’ve always wanted a wiki that I could a.) pull offline when I didn’t
-have access to the Internets and b.) edit (perhaps in bulk)
-in my favorite text editor. git-wiki allows both.</p>
-<p><cite><a href="http://github.com/willcodeforfoo/git-wiki/wikis">
-Cloning your wiki</a></cite></p>
-</blockquote>
+Then, run the program using the command:
 
-<blockquote>
-<p>Numerous people have written diff and merge systems for wikis;
-TWiki even uses RCS. If they used git instead, the repository would be tiny, and
-you could make a personal copy of the entire wiki to take on the plane with you,
-then sync your changes back when you're done.</p>
-<p><cite><a href="http://www.advogato.org/person/apenwarr/diary/371.html">
-Git is the next Unix</a></cite></p>
-</blockquote>
+    ./run.ru -sthin -p4567
 
-Licence
--------
-               DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
-                       Version 2, December 2004
+Point your web browser at <http://localhost:4567>.
 
-    Copyright (C) 2008 Simon Rozet <simon@rozet.name>
-    Everyone is permitted to copy and distribute verbatim or modified
-    copies of this license document, and changing it is allowed as long
-    as the name is changed.
+### Notes:
 
-               DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
-      TERMS AND CONDITIONS FOR COPYING, DISTRIBUTION AND MODIFICATION
+Git-Wiki automatically creates a repository in the directory `./.wiki`.
 
-     0. You just DO WHAT THE FUCK YOU WANT TO.
+If you use Ruby 1.9, it is very important that you set the environment
+variable LANG to a UTF-8 locale. Otherwise, you might get encoding exceptions.
+
+For production purposes, I recommend that you deploy the wiki
+with Thin and Apache/nginx load balancing.
+
+    # Create Thin config
+    thin config -C thin.yml -s 3 -p 5000 -R run.ru -e deployment -d
+
+    # Useful if you have multiple installations
+    # export WIKI_CONFIG=/srv/wiki/config.yml
+
+    # Start Thin servers
+    export LANG=en_US.UTF-8
+    thin start -C thin.yml
+
+Dependencies
+------------
+
+- [HAML][]
+- [ruby-git][]
+- [RubyPants][]
+
+### Optional Dependencies
+
+- [hpricot][] for tags in the wikitext
+- [imaginator][] for [LaTeX][]/[GraphViz][] output
+  (`minad-imaginator` Gem from [GitHub][])
+- [Pygments][] for syntax highlighting
+- [ImageMagick][] for image scaling and svg rendering
+- [RubyPants][] to fix punctuation
+
+### Dependencies for page rendering
+
+At least one of these renderers should be installed:
+
+- [creole][] for creole wikitext rendering
+  (`minad-creole` Gem from [GitHub][])
+- [RDiscount][] for Markdown rendering
+- [RedCloth][] for Textile rendering
+
+[creole]:http://github.com/minad/creole
+[Gem]:http://rubygems.org
+[Git]:http://www.git-scm.org
+[GitHub]:http://github.com
+[GraphViz]:http://www.graphviz.org
+[HAML]:http://haml.hamptoncatlin.com
+[hpricot]:http://wiki.github.com/why/hpricot
+[imaginator]:http://github.com/minad/imaginator
+[LaTeX]:www.latex-project.org
+[pygments]:http://pygments.org/
+[RDiscount]:http://github.com/rtomayko/rdiscount
+[RedCloth]:http://whytheluckystiff.net/ruby/redcloth/
+[ImageMagick]:http://www.imagemagick.org/
+[ruby-git]:http://github.com/schacon/ruby-git
+[RubyPants]:http://chneukirchen.org/blog/static/projects/rubypants.html

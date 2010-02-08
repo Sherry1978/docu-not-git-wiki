@@ -1,0 +1,3 @@
+- title escape_html(@error.message)
+- if !Wiki::Config.production?
+  %pre&= @error.backtrace.to_a.join("\n")

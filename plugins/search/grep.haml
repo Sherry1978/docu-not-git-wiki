@@ -1,0 +1,8 @@
+- menu :new
+- title "Search results for #{escape_html params[:pattern]}"
+= 'match'.pluralize(@matches.length, 'matches')
+%ul
+  = list_of @matches do |match|
+    %a{:href=>match[0].urlpath}=match[0]
+    %br
+    &=match[1]

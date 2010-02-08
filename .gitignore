@@ -1,2 +1,10 @@
 *.log
 *.swp
+.wiki
+mongrel.sh
+thin.sh
+env.sh
+config.yml
+doc
+coverage
+banned.list

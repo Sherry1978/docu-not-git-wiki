@@ -1,0 +1,33 @@
+%table.tree.zebra
+  %thead
+    %tr
+      %th= :name.t
+      %th= :last_modified.t
+      %th= :author.t
+      %th= :message.t
+      %th= :actions.t
+  %tbody
+    - if !@tree.path.blank?
+      %tr
+        %td.link{:colspan => 5}
+          %a.tree{:href=>resource_path(@tree, :path => '..')}
+            \..
+    - @tree.children.each do |child|
+      - classes = child.tree? ? 'tree' : 'page'
+      - ext = child.mime.extensions.first
+      - classes << (ext ? " ext_#{ext}" : '')
+      %tr
+        %td.link
+          %a{:href=>resource_path(child), :class => classes}= child.name
+        %td= date(child.latest_commit.date)
+        %td= child.latest_commit.author.name
+        %td= child.latest_commit.message.truncate(50)
+        %td
+          - if child.tree?
+            %a.action-archive{:href=>action_path(child, :archive), :title => :archive.t}
+              %span= :archive.t
+          - else
+            %a.action-edit{:href=>action_path(child, :edit), :title => :edit.t}
+              %span= :edit.t
+          %a.action-history{:href=>action_path(child, :history), :title => :history.t}
+            %span= :history.t
